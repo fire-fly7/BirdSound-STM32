@@ -50,21 +50,18 @@ COM_InitTypeDef BspCOMInit;
 DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
 DFSDM_Channel_HandleTypeDef hdfsdm1_channel0;
 DMA_HandleTypeDef hdma_dfsdm1_flt0;
-DMA_HandleTypeDef hdma_dma_generator0;
 
+DMA_HandleTypeDef hdma_dma_generator0;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_DFSDM1_Init(void);
-static void MX_ICACHE_Init(void);
-static void MX_DMA_Init(void);
 static void MX_GPIO_Init(void);
-void Error_Handler(void);
-
-
+static void MX_DMA_Init(void);
+static void MX_ICACHE_Init(void);
+static void MX_DFSDM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -88,20 +85,29 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
   SystemClock_Config();
 
+  /* USER CODE BEGIN SysInit */
 
-  MX_DFSDM1_Init();
-  MX_ICACHE_Init();
-  MX_DMA_Init();
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  Audio_Init();
-  Audio_Start();
+  MX_DMA_Init();
+  MX_ICACHE_Init();
+  MX_DFSDM1_Init();
+  /* USER CODE BEGIN 2 */
 
+  /* USER CODE END 2 */
 
+  /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
   BSP_LED_Init(LED_BLUE);
   BSP_LED_Init(LED_RED);
@@ -120,25 +126,16 @@ int main(void)
     Error_Handler();
   }
 
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if (Audio_FrameReady())
-    {
-        Audio_GetFrame(audio_512);
 
-        /* MFCC 流水线 */
-        MFCC_Stream_PushSamples(audio_512);
+    /* USER CODE END WHILE */
 
-        Audio_ClearFlag();
-    }
-
-    if (MFCC_Stream_Ready())
-    {
-        MFCC_Stream_Get(mfcc_32x13);
-        int result = model_predict(mfcc_32x13);
-        // handle_result(result);
-    }
+    /* USER CODE BEGIN 3 */
   }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -207,14 +204,12 @@ static void MX_DFSDM1_Init(void)
 
   /* USER CODE END DFSDM1_Init 1 */
   hdfsdm1_filter0.Instance = DFSDM1_Filter0;
-
-
   hdfsdm1_filter0.Init.RegularParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
   hdfsdm1_filter0.Init.RegularParam.FastMode = ENABLE;
   hdfsdm1_filter0.Init.RegularParam.DmaMode = ENABLE;
   hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_FASTSINC_ORDER;
-  hdfsdm1_filter0.Init.FilterParam.Oversampling = 64;
-  hdfsdm1_filter0.Init.FilterParam.IntOversampling = 27;
+  hdfsdm1_filter0.Init.FilterParam.Oversampling = 1;
+  hdfsdm1_filter0.Init.FilterParam.IntOversampling = 1;
   if (HAL_DFSDM_FilterInit(&hdfsdm1_filter0) != HAL_OK)
   {
     Error_Handler();
@@ -222,16 +217,16 @@ static void MX_DFSDM1_Init(void)
   hdfsdm1_channel0.Instance = DFSDM1_Channel0;
   hdfsdm1_channel0.Init.OutputClock.Activation = ENABLE;
   hdfsdm1_channel0.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-  hdfsdm1_channel0.Init.OutputClock.Divider = 4;
+  hdfsdm1_channel0.Init.OutputClock.Divider = 2;
   hdfsdm1_channel0.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
   hdfsdm1_channel0.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
   hdfsdm1_channel0.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
   hdfsdm1_channel0.Init.SerialInterface.Type = DFSDM_CHANNEL_SPI_RISING;
-  hdfsdm1_channel0.Init.SerialInterface.SpiClock = DFSDM_CHANNEL_SPI_CLOCK_INTERNAL;
+  hdfsdm1_channel0.Init.SerialInterface.SpiClock = DFSDM_CHANNEL_SPI_CLOCK_EXTERNAL;
   hdfsdm1_channel0.Init.Awd.FilterOrder = DFSDM_CHANNEL_FASTSINC_ORDER;
-  hdfsdm1_channel0.Init.Awd.Oversampling = 10;
+  hdfsdm1_channel0.Init.Awd.Oversampling = 1;
   hdfsdm1_channel0.Init.Offset = 0;
-  hdfsdm1_channel0.Init.RightBitShift = 8;
+  hdfsdm1_channel0.Init.RightBitShift = 0x00;
   if (HAL_DFSDM_ChannelInit(&hdfsdm1_channel0) != HAL_OK)
   {
     Error_Handler();
@@ -366,8 +361,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

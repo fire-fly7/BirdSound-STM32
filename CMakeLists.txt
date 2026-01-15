@@ -84,11 +84,15 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 )
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMSISCORE}/Include
-    ${PROJECT_SOURCE_DIR}/Drivers/tflite-micro
-    ${PROJECT_SOURCE_DIR}/Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/flatbuffers/include
-    ${PROJECT_SOURCE_DIR}/Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gemmlowp
-    ${PROJECT_SOURCE_DIR}/Drivers/tflite-micro
+    Drivers/CMSIS/Include
+    Drivers/CMSIS/DSP/Include
+    Drivers/CMSIS/Core/Include
+    Drivers/CMSIS-DSP/Include
+
+    Drivers/tflite-micro
+    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/flatbuffers/include
+    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gemmlowp
+    Drivers/tflite-micro
 )
 
 

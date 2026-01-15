@@ -32,14 +32,6 @@ extern "C" {
 #include "stm32l5xx_nucleo.h"
 #include <stdio.h>
 
-#include "stm32l5xx_hal_dfsdm.h"
-#include "arm_math.h"
-#include "arm_const_structs.h"
-#include "audio_capture.h"
-#include "mfcc.h"
-#include "model_inference.h"
-#include "ds_cnn_model_data.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

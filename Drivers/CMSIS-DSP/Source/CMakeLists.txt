@@ -30,6 +30,12 @@ option(FASTBUILD "Faster build for Cortex-M. Disable it for A" OFF)
 
 add_library(CMSISDSP STATIC)
 
+target_include_directories(CMSISDSP PUBLIC
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Core/Include
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
+)
+
+
 include(BasicMathFunctions/Config.cmake)
 
 include(ComplexMathFunctions/Config.cmake)

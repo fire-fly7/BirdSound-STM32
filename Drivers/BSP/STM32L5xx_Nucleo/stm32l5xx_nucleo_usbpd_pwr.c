@@ -427,7 +427,7 @@ int32_t BSP_USBPD_PWR_VBUSGetVoltage(uint32_t Instance, uint32_t *pVoltage)
     voltage = (uint32_t) __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, (uint32_t) LL_ADC_REG_ReadConversionData12(VSENSE_ADC_INSTANCE), LL_ADC_RESOLUTION_12B); /* mV */
 
     /* STM32L5XX_NUCLEO board is used */
-    /* Theorically, it should have been 7.613 (Divider R17/R13 (49.9K/330K) for VSENSE */
+    /* Theoretically, it should have been 7.613 (Divider R17/R13 (49.9K/330K) for VSENSE */
     voltage *= 7613u;
     voltage /= 1000u;
 
