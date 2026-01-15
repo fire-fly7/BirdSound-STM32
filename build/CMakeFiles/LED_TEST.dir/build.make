@@ -507,7 +507,7 @@ LED_TEST.elf: cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32
 LED_TEST.elf: cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_uart.c.obj
 LED_TEST.elf: cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/BSP/STM32L5xx_Nucleo/stm32l5xx_nucleo.c.obj
 LED_TEST.elf: CMakeFiles/LED_TEST.dir/build.make
-LED_TEST.elf: bin_dsp/libCMSISDSP.a
+LED_TEST.elf: Drivers/CMSIS-DSP/Source/libCMSISDSP.a
 LED_TEST.elf: CMakeFiles/LED_TEST.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/cy/code/program/LED_TEST/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Linking CXX executable LED_TEST.elf"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/LED_TEST.dir/link.txt --verbose=$(VERBOSE)

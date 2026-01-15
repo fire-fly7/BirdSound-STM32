@@ -5,8 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/Drivers",
-                "${workspaceFolder}/Drivers/CMSIS",
-                "${workspaceFolder}/Drivers/CMSIS/DSP/Include",
+                "${workspaceFolder}/Drivers/CMSIS-DSP",
+                "${workspaceFolder}/Drivers/CMSIS-DSP/Include",
                 "${workspaceFolder}/Drivers/tflite-micro",
                 "${workspaceFolder}/Drivers/tflite-micro/tensorflow",
                 "${workspaceFolder}/Drivers/tflite-micro/tensorflow/lite",

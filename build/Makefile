@@ -152,7 +152,7 @@ CMSISDSP: cmake_check_build_system
 
 # fast build rule for target.
 CMSISDSP/fast:
-	$(MAKE) $(MAKESILENT) -f bin_dsp/CMakeFiles/CMSISDSP.dir/build.make bin_dsp/CMakeFiles/CMSISDSP.dir/build
+	$(MAKE) $(MAKESILENT) -f Drivers/CMSIS-DSP/Source/CMakeFiles/CMSISDSP.dir/build.make Drivers/CMSIS-DSP/Source/CMakeFiles/CMSISDSP.dir/build
 .PHONY : CMSISDSP/fast
 
 Core/Src/audio_capture.obj: Core/Src/audio_capture.c.obj

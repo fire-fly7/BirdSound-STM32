@@ -8,6 +8,7 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
   "/home/cy/code/program/LED_TEST/CMakeLists.txt"
+  "/home/cy/code/program/LED_TEST/Drivers/CMSIS-DSP/CMakeLists.txt"
   "/home/cy/code/program/LED_TEST/Drivers/CMSIS-DSP/Source/BasicMathFunctions/Config.cmake"
   "/home/cy/code/program/LED_TEST/Drivers/CMSIS-DSP/Source/BayesFunctions/Config.cmake"
   "/home/cy/code/program/LED_TEST/Drivers/CMSIS-DSP/Source/CMakeLists.txt"
@@ -144,12 +145,13 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/3.28.3/CMakeASMCompiler.cmake"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "cmake/stm32cubemx/CMakeFiles/CMakeDirectoryInformation.cmake"
-  "bin_dsp/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "Drivers/CMSIS-DSP/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "Drivers/CMSIS-DSP/Source/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/LED_TEST.dir/DependInfo.cmake"
   "cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/DependInfo.cmake"
-  "bin_dsp/CMakeFiles/CMSISDSP.dir/DependInfo.cmake"
+  "Drivers/CMSIS-DSP/Source/CMakeFiles/CMSISDSP.dir/DependInfo.cmake"
   )

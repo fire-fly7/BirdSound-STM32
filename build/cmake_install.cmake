@@ -44,7 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/cy/code/program/LED_TEST/build/bin_dsp/cmake_install.cmake")
+  include("/home/cy/code/program/LED_TEST/build/Drivers/CMSIS-DSP/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
