@@ -34,7 +34,9 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "audio_capture.h"
+#include "mfcc.h"
+#include "model_inference.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

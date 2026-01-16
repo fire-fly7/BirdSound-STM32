@@ -32,9 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-static float audio_512[512];
-// static float mfcc_frame[13];
-static float mfcc_32x13[32 * 13];
+static float audio_512[AUDIO_FRAME_STEP];
+static float mfcc_32x13[MODEL_INPUT_SIZE];
 
 
 /* USER CODE END PD */
@@ -104,6 +103,10 @@ int main(void)
   MX_ICACHE_Init();
   MX_DFSDM1_Init();
   /* USER CODE BEGIN 2 */
+  Audio_Init();
+  MFCC_Init();
+  Audio_Start();
+
 
   /* USER CODE END 2 */
 
@@ -132,7 +135,44 @@ int main(void)
   {
 
     /* USER CODE END WHILE */
+    if(Audio_FrameReady())
+    {
+        Audio_GetFrame(audio_512);
+        Audio_ClearFlag();
 
+        MFCC_Stream_PushSamples(audio_512);
+
+        if (MFCC_Stream_Ready())
+        {
+            MFCC_Stream_Get(mfcc_32x13);
+
+            int result = model_predict(mfcc_32x13);
+            const float* output = model_get_output();
+            if (result >= 0)
+            {
+                switch (result)
+                {
+                    case 0: // 类别 0
+                        BSP_LED_On(LED_GREEN);
+                        BSP_LED_Off(LED_BLUE);
+                        BSP_LED_Off(LED_RED);
+                        break;
+                    case 1: // 类别 1
+                        BSP_LED_Off(LED_GREEN);
+                        BSP_LED_On(LED_BLUE);
+                        BSP_LED_Off(LED_RED);
+                        break;
+                    case 2: // 类别 2
+                        BSP_LED_Off(LED_GREEN);
+                        BSP_LED_Off(LED_BLUE);
+                        BSP_LED_On(LED_RED);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
