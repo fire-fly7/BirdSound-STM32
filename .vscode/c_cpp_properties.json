@@ -21,10 +21,10 @@
                 "USE_HAL_DRIVER",
                 "STM32L552xx"
             ],
-            "compilerPath": "/home/cy/gnu_toolchain/xpack-arm-none-eabi-gcc-14.2.1-1.1/bin/arm-none-eabi-g++",
+            "compilerPath": "/home/cy/gnu_toolchain/xpack-arm-none-eabi-gcc-14.2.1-1.1/bin/arm-none-eabi-gcc",
             "cStandard": "c11",
             "cppStandard": "gnu++17",
-            "intelliSenseMode": "gcc-arm"
+            "intelliSenseMode": "linux-gcc-arm"
         }
     ],
     "version": 4
