@@ -2,6 +2,9 @@ extern "C" {
 #include "model_inference.h"
 }
 #include "ds_cnn_model_data.h"
+#include "cnn_model_data.h"
+#include "bc_resnet_data.h"
+#include "mobilenetv2_data.h"
 #include "stddef.h"
 
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
@@ -45,7 +48,7 @@ TfLiteStatus RegisterOps(Micro_Voice_OpResolver& op_resolver) {
 
 void model_init(void) {   
 
-    const tflite::Model* model = tflite::GetModel(ds_cnn_model_quant);
+    const tflite::Model* model = tflite::GetModel(model_data);
     if (model->version() != TFLITE_SCHEMA_VERSION) {
         TF_LITE_REPORT_ERROR(error_reporter, "Model schema mismatch!");
         while (1);
@@ -70,6 +73,13 @@ void model_init(void) {
     input = interpreter->input(0);
     output = interpreter->output(0);
     }
+
+void DWT_Init()
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
 
 // int model_predict(const float *input_data) {
 //     for (int i = 0; i < MODEL_INPUT_SIZE; ++i) {
