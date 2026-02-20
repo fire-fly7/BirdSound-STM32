@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 
-#
 # This file is generated only once,
 # and is not re-generated if converter is called multiple times.
 #
@@ -10,7 +9,11 @@ cmake_minimum_required(VERSION 3.22)
 # Setup compiler settings
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -31,18 +34,16 @@ project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Enable CMake support for ASM and C languages
-enable_language(C ASM)
+enable_language(C CXX ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
 
-# Add STM32CubeMX generated sources and CMSIS-DSP library
+# Add STM32CubeMX generated sources and CMSIS-DSP library and definded sflm static library
 add_subdirectory(cmake/stm32cubemx)
 add_subdirectory(Drivers/CMSIS-DSP)
-
-set(TFLM_ROOT "${CMAKE_SOURCE_DIR}/Drivers/tflite-micro")
-# set(CMSISDSP_ROOT "${CMAKE_SOURCE_DIR}/Drivers/CMSIS-DSP/Source")
+add_library(tflm STATIC)
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
@@ -50,16 +51,68 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols
 )
 
-# Add linked libraries
-target_link_libraries(${CMAKE_PROJECT_NAME}
-    stm32cubemx
 
-    # Add user defined libraries
-    CMSISDSP
+# Add TensorFlow Lite Micro sources
+target_sources(tflm PRIVATE
+    # ===== Kernel =====
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/conv.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/depthwise_conv.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/fully_connected.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/softmax.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/add.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/pooling.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/reshape.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/quantize.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/dequantize.cc
+
+    # ===== Memory =====
+    Drivers/tflite-micro/tensorflow/lite/micro/memory_planner/linear_memory_planner.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/memory_planner/greedy_memory_planner.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.cc
+
+    # ===== Runtime =====
+    Drivers/tflite-micro/tensorflow/lite/core/api/flatbuffer_conversions.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter_graph.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter_context.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_allocator.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_context.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_op_resolver.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_log.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/flatbuffer_utils.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/memory_helpers.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_resource_variable.cc
+    Drivers/tflite-micro/tensorflow/compiler/mlir/lite/schema/schema_utils.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.cc
 )
+
+target_include_directories(tflm PUBLIC
+    Drivers/tflite-micro
+    Drivers/tflite-micro/tensorflow/lite/micro
+    Drivers/tflite-micro/tensorflow/lite/core/api
+    Drivers/tflite-micro/tensorflow/lite/schema
+    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/flatbuffers/include
+    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gemmlowp
+    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/ruy
+)
+
+target_compile_definitions(tflm PUBLIC
+    TF_LITE_STATIC_MEMORY
+)
+
+# Add include paths
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
+
+    Drivers/CMSIS/Include
+    Drivers/CMSIS/DSP/Include
+    Drivers/CMSIS/Core/Include
+    Drivers/CMSIS-DSP/Includes
+
+)
+
 # Add sources to executable
-
-
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/main.c
     Core/Src/mfcc.c
@@ -69,31 +122,16 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/model_test.cpp
     Core/Src/debug_log.c
 
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_interpreter_graph.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_interpreter_context.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_allocator.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_context.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_op_resolver.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_interpreter.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_log.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/flatbuffer_utils.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/memory_helpers.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/micro_resource_variable.cc
-    ${TFLM_ROOT}/tensorflow/compiler/mlir/lite/schema/schema_utils.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.cc
-    ${TFLM_ROOT}/tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.cc
-)
-# Add include paths
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    Drivers/CMSIS/Include
-    Drivers/CMSIS/DSP/Include
-    Drivers/CMSIS/Core/Include
-    Drivers/CMSIS-DSP/Include
 
-    Drivers/tflite-micro
-    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/flatbuffers/include
-    Drivers/tflite-micro/tensorflow/lite/micro/tools/make/downloads/gemmlowp
-    Drivers/tflite-micro
+
 )
 
 
+
+# Add linked libraries
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    stm32cubemx
+    # Add user defined libraries
+    CMSISDSP
+    tflm
+)
