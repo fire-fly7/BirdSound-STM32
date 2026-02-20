@@ -64,8 +64,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/main.c
     Core/Src/mfcc.c
     Core/Src/audio_capture.c
+    Core/Src/model_data.c
     Core/Src/model_inference.cpp
-    Core/Src/ds_cnn_model_data.c
+    Core/Src/model_test.cpp
     Core/Src/debug_log.c
 
     ${TFLM_ROOT}/tensorflow/lite/micro/micro_interpreter_graph.cc

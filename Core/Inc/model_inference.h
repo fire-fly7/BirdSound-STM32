@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 void model_init(void);
-int model_predict(const float *input_data);
+int model_inference(const float *input_data);
 const float* model_get_output(void);
 
 #ifdef __cplusplus

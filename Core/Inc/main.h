@@ -37,6 +37,7 @@ extern "C" {
 #include "audio_capture.h"
 #include "mfcc.h"
 #include "model_inference.h"
+#include "model_test.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

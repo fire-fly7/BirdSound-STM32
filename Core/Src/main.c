@@ -106,7 +106,14 @@ int main(void)
   Audio_Init();
   MFCC_Init();
   Audio_Start();
+  ModelTest_Init();
+  model_init();
 
+      char msg[] = "MODEL INIT\r\n";
+      HAL_UART_Transmit(&hcom_uart[COM1],
+                  (uint8_t*)msg,
+                  sizeof(msg)-1,
+                  HAL_MAX_DELAY);
 
   /* USER CODE END 2 */
 
@@ -132,9 +139,50 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {
+  {  
+    BSP_LED_On(LED_GREEN);
+    BSP_LED_Off(LED_BLUE);
+    BSP_LED_Off(LED_RED);
 
-    /* USER CODE END WHILE */
+    char msg[] = "RUNNING LOOP\r\n";
+    HAL_UART_Transmit(&hcom_uart[COM1],
+                  (uint8_t*)msg,
+                  sizeof(msg)-1,
+                  HAL_MAX_DELAY);
+
+    // // ===== 模型推理测试 =====
+    // BSP_LED_On(LED_GREEN);
+    // BSP_LED_Off(LED_BLUE);
+    // BSP_LED_Off(LED_RED);
+    // // 单次测试
+    // uint32_t t = ModelTest_RunSingle(mfcc_32x13);
+
+    // HAL_UART_Transmit(&hcom_uart[COM1],
+    //                   (uint8_t*)&t,
+    //                   sizeof(t),
+    //                   HAL_MAX_DELAY);
+
+    // BSP_LED_Off(LED_GREEN);
+    // BSP_LED_Off(LED_BLUE);
+    // BSP_LED_Off(LED_RED);
+    // // 平均测试
+    // BSP_LED_Off(LED_GREEN);
+    // BSP_LED_On(LED_BLUE);
+    // BSP_LED_Off(LED_RED);
+
+    // model_perf_result_t perf = ModelTest_RunAverage(mfcc_32x13, 50);
+    // HAL_UART_Transmit(&hcom_uart[COM1],
+    //                   (uint8_t*)&perf,
+    //                   sizeof(perf),
+    //                   HAL_MAX_DELAY);
+
+    // BSP_LED_Off(LED_GREEN);
+    // BSP_LED_Off(LED_BLUE);
+    // BSP_LED_On(LED_RED);
+
+    // ===== 模型推理测试 =====
+
+    // ===== 模型推理 =====    
     if(Audio_FrameReady())
     {
         Audio_GetFrame(audio_512);
@@ -146,7 +194,7 @@ int main(void)
         {
             MFCC_Stream_Get(mfcc_32x13);
 
-            int result = model_predict(mfcc_32x13);
+            int result = model_inference(mfcc_32x13);
             const float* output = model_get_output();
             if (result >= 0)
             {
@@ -173,6 +221,8 @@ int main(void)
             }
         }
     }
+    // ===== 模型推理 =====
+    /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

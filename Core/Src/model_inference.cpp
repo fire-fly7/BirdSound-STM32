@@ -1,10 +1,9 @@
 extern "C" {
 #include "model_inference.h"
 }
-#include "ds_cnn_model_data.h"
-#include "cnn_model_data.h"
-#include "bc_resnet_data.h"
-#include "mobilenetv2_data.h"
+
+#include "model_data.h"
+
 #include "stddef.h"
 
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
@@ -74,35 +73,29 @@ void model_init(void) {
     output = interpreter->output(0);
     }
 
-void DWT_Init()
-{
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+int model_inference(const float *input_data) {
+    for (int i = 0; i < MODEL_INPUT_SIZE; ++i) {
+        input->data.f[i] = input_data[i];
+    }
+
+    if (interpreter->Invoke() != kTfLiteOk) {
+        return -1;
+    }
+
+    // 找最大概率的类别索引
+    int max_index = 0;
+    float max_score = output->data.f[0];
+    for (int i = 1; i < MODEL_OUTPUT_SIZE; i++) {
+        if (output->data.f[i] > max_score) {
+            max_score = output->data.f[i];
+            max_index = i;
+        }
+    }
+    return max_index;
 }
 
-// int model_predict(const float *input_data) {
-//     for (int i = 0; i < MODEL_INPUT_SIZE; ++i) {
-//         input->data.f[i] = input_data[i];
-//     }
-
-//     if (interpreter->Invoke() != kTfLiteOk) {
-//         return -1;
-//     }
-
-//     // 找最大概率的类别索引
-//     int max_index = 0;
-//     float max_score = output->data.f[0];
-//     for (int i = 1; i < MODEL_OUTPUT_SIZE; i++) {
-//         if (output->data.f[i] > max_score) {
-//             max_score = output->data.f[i];
-//             max_index = i;
-//         }
-//     }
-//     return max_index;
-// }
-
-// const float* model_get_output(void) {
-//     return output->data.f;
-// }
+const float* model_get_output(void) {
+    return output->data.f;
+}
 }
