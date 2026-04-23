@@ -1,10 +1,9 @@
 #include "audio_capture.h"
 #include "stm32l5xx_hal.h"
 
-extern DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;    // 来自 CubeMX
-extern DFSDM_Channel_HandleTypeDef hdfsdm1_channel0;  // 来自 CubeMX
+extern SAI_HandleTypeDef hsai_BlockB1;
 
-static int32_t dma_buffer[AUDIO_DMA_SAMPLES];
+static uint32_t dma_buffer[AUDIO_DMA_SAMPLES];
 
 static float ring_buffer[AUDIO_SAMPLE_RATE];
 static volatile uint32_t ring_index = 0;
@@ -25,9 +24,9 @@ void Audio_Init(void) {
 
 void Audio_Start(void) {
 
-    HAL_StatusTypeDef status = HAL_DFSDM_FilterRegularStart_DMA(
-        &hdfsdm1_filter0,
-        (int32_t*)dma_buffer,
+    HAL_StatusTypeDef status = HAL_SAI_Receive_DMA(
+        &hsai_BlockB1,
+        (uint8_t*)dma_buffer,
         AUDIO_DMA_SAMPLES
     );
 
@@ -37,23 +36,66 @@ void Audio_Start(void) {
     }
 }
 
-void Audio_DFSDM_HalfCallback(void)
+void Audio_SAI_HalfCallback(void)
 {
     half_ready = true;
 }
 
-void Audio_DFSDM_FullCallback(void)
+void Audio_SAI_FullCallback(void)
 {
     full_ready = true;
 }
 
-static void push_samples(int32_t *src, uint32_t len)
+static float convert_i2s_sample(uint32_t raw_sample)
 {
-    for (uint32_t i = 0; i < len; i++)
+    int32_t sample_24;
+
+    if ((raw_sample & 0xFFU) == 0U)
     {
-        /* DFSDM 24-bit → float */
-        ring_buffer[ring_index++] =
-            (float)src[i] / 8388608.0f;
+        sample_24 = ((int32_t)raw_sample) >> 8;
+    }
+    else
+    {
+        sample_24 = ((int32_t)(raw_sample << 8)) >> 8;
+    }
+
+    return (float)sample_24 / 8388608.0f;
+}
+
+static uint32_t detect_active_slot(const uint32_t *src, uint32_t frame_count)
+{
+    float left_energy = 0.0f;
+    float right_energy = 0.0f;
+
+    for (uint32_t i = 0; i < frame_count; i++)
+    {
+        float left = convert_i2s_sample(
+            src[(i * AUDIO_I2S_SLOTS_PER_FRAME) + AUDIO_I2S_LEFT_SLOT]);
+        float right = convert_i2s_sample(
+            src[(i * AUDIO_I2S_SLOTS_PER_FRAME) + AUDIO_I2S_RIGHT_SLOT]);
+
+        left_energy += (left >= 0.0f) ? left : -left;
+        right_energy += (right >= 0.0f) ? right : -right;
+    }
+
+    if (right_energy > left_energy)
+    {
+        return AUDIO_I2S_RIGHT_SLOT;
+    }
+
+    return AUDIO_I2S_LEFT_SLOT;
+}
+
+static void push_samples(const uint32_t *src, uint32_t frame_count)
+{
+    uint32_t active_slot = detect_active_slot(src, frame_count);
+
+    for (uint32_t i = 0; i < frame_count; i++)
+    {
+        uint32_t raw_sample =
+            src[(i * AUDIO_I2S_SLOTS_PER_FRAME) + active_slot];
+
+        ring_buffer[ring_index++] = convert_i2s_sample(raw_sample);
 
         if (ring_index >= AUDIO_SAMPLE_RATE)
             ring_index = 0;
@@ -80,7 +122,8 @@ void Audio_GetFrame(float *out_512)
 
     if (full_ready)
     {
-        push_samples(&dma_buffer[AUDIO_FRAME_STEP], AUDIO_FRAME_STEP);
+        push_samples(&dma_buffer[AUDIO_FRAME_STEP * AUDIO_I2S_SLOTS_PER_FRAME],
+                     AUDIO_FRAME_STEP);
         full_ready = false;
     }
 

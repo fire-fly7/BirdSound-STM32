@@ -26,7 +26,7 @@ static tflite::ErrorReporter* error_reporter = &micro_error_reporter;
 #define MODEL_INPUT_SIZE  (32 * 13)
 #define MODEL_OUTPUT_SIZE  3
 
-using Micro_Voice_OpResolver = tflite::MicroMutableOpResolver<5>;
+using Micro_Voice_OpResolver = tflite::MicroMutableOpResolver<9>;
 
 extern "C" {
 

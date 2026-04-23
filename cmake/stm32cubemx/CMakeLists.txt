@@ -50,6 +50,8 @@ set(STM32_Drivers_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_icache.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_dfsdm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_dfsdm_ex.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_sai.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_sai_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_usart_ex.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_uart_ex.c

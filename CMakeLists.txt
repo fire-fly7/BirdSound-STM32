@@ -55,35 +55,57 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Add TensorFlow Lite Micro sources
 target_sources(tflm PRIVATE
     # ===== Kernel =====
+    Drivers/tflite-micro/tensorflow/lite/kernels/kernel_util.cc
+    Drivers/tflite-micro/tensorflow/lite/kernels/internal/common.cc
+    Drivers/tflite-micro/tensorflow/lite/kernels/internal/portable_tensor_utils.cc
+    Drivers/tflite-micro/tensorflow/lite/kernels/internal/quantization_util.cc
+    Drivers/tflite-micro/tensorflow/lite/kernels/internal/tensor_ctypes.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/conv.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/conv_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/depthwise_conv.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/depthwise_conv_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/fully_connected.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/fully_connected_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/softmax.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/softmax_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/add.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/add_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/pooling.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/pooling_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/reshape.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/reshape_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/quantize.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/quantize_common.cc
     Drivers/tflite-micro/tensorflow/lite/micro/kernels/dequantize.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/dequantize_common.cc
 
     # ===== Memory =====
     Drivers/tflite-micro/tensorflow/lite/micro/memory_planner/linear_memory_planner.cc
     Drivers/tflite-micro/tensorflow/lite/micro/memory_planner/greedy_memory_planner.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/memory_planner/non_persistent_buffer_planner_shim.cc
     Drivers/tflite-micro/tensorflow/lite/micro/arena_allocator/single_arena_buffer_allocator.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/arena_allocator/persistent_arena_buffer_allocator.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/arena_allocator/non_persistent_arena_buffer_allocator.cc
 
     # ===== Runtime =====
+    Drivers/tflite-micro/tensorflow/lite/core/c/common.cc
+    Drivers/tflite-micro/tensorflow/compiler/mlir/lite/core/api/error_reporter.cc
     Drivers/tflite-micro/tensorflow/lite/core/api/flatbuffer_conversions.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter_graph.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter_context.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_allocator.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_allocation_info.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_context.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_op_resolver.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_interpreter.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_log.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/micro_utils.cc
     Drivers/tflite-micro/tensorflow/lite/micro/flatbuffer_utils.cc
     Drivers/tflite-micro/tensorflow/lite/micro/memory_helpers.cc
     Drivers/tflite-micro/tensorflow/lite/micro/micro_resource_variable.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/kernel_util.cc
+    Drivers/tflite-micro/tensorflow/lite/micro/kernels/micro_tensor_utils.cc
     Drivers/tflite-micro/tensorflow/compiler/mlir/lite/schema/schema_utils.cc
-    Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.cc
     Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/micro_error_reporter.cc
     Drivers/tflite-micro/tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.cc
 )

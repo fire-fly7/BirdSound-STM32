@@ -5,9 +5,14 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define AUDIO_SAMPLE_RATE     16000
-#define AUDIO_DMA_SAMPLES     1024      // DMA 一次采集
-#define AUDIO_FRAME_STEP      512       // 每次对外提供 512
+#define AUDIO_SAMPLE_RATE         16000U
+#define AUDIO_FRAME_STEP          512U
+#define AUDIO_I2S_SLOTS_PER_FRAME 2U
+#define AUDIO_DMA_FRAMES          (AUDIO_FRAME_STEP * 2U)
+#define AUDIO_DMA_SAMPLES         (AUDIO_DMA_FRAMES * AUDIO_I2S_SLOTS_PER_FRAME)
+
+#define AUDIO_I2S_LEFT_SLOT       0U
+#define AUDIO_I2S_RIGHT_SLOT      1U
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,9 +30,9 @@ void Audio_GetFrame(float *out_512);
 /* 清除标志 */
 void Audio_ClearFlag(void);
 
-/* ===== DFSDM DMA 回调（只能有一个定义） ===== */
-void Audio_DFSDM_HalfCallback(void);
-void Audio_DFSDM_FullCallback(void);
+/* ===== SAI DMA 回调 ===== */
+void Audio_SAI_HalfCallback(void);
+void Audio_SAI_FullCallback(void);
 
 #ifdef __cplusplus
 }
@@ -36,4 +41,3 @@ void Audio_DFSDM_FullCallback(void);
 #endif
 
 #endif // AUDIO_CAPTURE_H
-

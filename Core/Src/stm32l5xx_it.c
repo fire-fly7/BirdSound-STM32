@@ -26,7 +26,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-extern DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
+extern SAI_HandleTypeDef hsai_BlockB1;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -55,8 +55,8 @@ extern DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_dfsdm1_flt0;
 extern DMA_HandleTypeDef hdma_dma_generator0;
+extern DMA_HandleTypeDef hdma_sai1_b;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -236,7 +236,6 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
 
   /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_dfsdm1_flt0);
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
@@ -256,16 +255,45 @@ void DMA1_Channel2_IRQHandler(void)
   /* USER CODE END DMA1_Channel2_IRQn 1 */
 }
 
-/* USER CODE BEGIN 1 */
-void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter) {
-    if (hdfsdm_filter == &hdfsdm1_filter0) {
-      void Audio_DFSDM_HalfCallback(void);
+/**
+  * @brief This function handles DMA2 channel1 global interrupt.
+  */
+void DMA2_Channel1_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Channel1_IRQn 0 */
 
+  /* USER CODE END DMA2_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_sai1_b);
+  /* USER CODE BEGIN DMA2_Channel1_IRQn 1 */
+
+  /* USER CODE END DMA2_Channel1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles SAI1 global interrupt.
+  */
+void SAI1_IRQHandler(void)
+{
+  /* USER CODE BEGIN SAI1_IRQn 0 */
+
+  /* USER CODE END SAI1_IRQn 0 */
+  HAL_SAI_IRQHandler(&hsai_BlockB1);
+  /* USER CODE BEGIN SAI1_IRQn 1 */
+
+  /* USER CODE END SAI1_IRQn 1 */
+}
+
+/* USER CODE BEGIN 1 */
+void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
+{
+    if (hsai == &hsai_BlockB1) {
+      Audio_SAI_FullCallback();
     }
 }
-void HAL_DFSDM_FilterRegConvHalfCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter) {
-    if (hdfsdm_filter == &hdfsdm1_filter0) {
-        void Audio_DFSDM_FullCallback(void);
+void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai)
+{
+    if (hsai == &hsai_BlockB1) {
+        Audio_SAI_HalfCallback();
     }
 }
 /* USER CODE END 1 */

@@ -21,19 +21,28 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum
+{
+  TEST_STAGE_BOOT = 0,
+  TEST_STAGE_AUDIO_CAPTURE,
+  TEST_STAGE_MFCC_READY,
+  TEST_STAGE_UART_TX,
+  TEST_STAGE_FAULT
+} test_stage_t;
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 static float audio_512[AUDIO_FRAME_STEP];
-static float mfcc_32x13[MODEL_INPUT_SIZE];
+static float mfcc_32x13[MFCC_NUM_FRAMES * MFCC_NUM_COEFF];
 
 
 /* USER CODE END PD */
@@ -46,12 +55,14 @@ static float mfcc_32x13[MODEL_INPUT_SIZE];
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
-DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
-DFSDM_Channel_HandleTypeDef hdfsdm1_channel0;
-DMA_HandleTypeDef hdma_dfsdm1_flt0;
-
 DMA_HandleTypeDef hdma_dma_generator0;
+SAI_HandleTypeDef hsai_BlockB1;
+DMA_HandleTypeDef hdma_sai1_b;
 /* USER CODE BEGIN PV */
+static test_stage_t g_test_stage = TEST_STAGE_BOOT;
+static uint32_t audio_frame_count = 0;
+static uint32_t mfcc_capture_count = 0;
+static uint32_t last_frame_peak_milli = 0;
 
 /* USER CODE END PV */
 
@@ -60,13 +71,137 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ICACHE_Init(void);
-static void MX_DFSDM1_Init(void);
+static void MX_SAI1_Init(void);
 /* USER CODE BEGIN PFP */
+static void Debug_Print(const char *message);
+static void SetTestStage(test_stage_t stage);
+static uint32_t ComputeFramePeakMilli(const float *samples, uint32_t sample_count);
+static int32_t FloatToMilli(float value);
+static void TransmitMfccSnapshot(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+static void Debug_Print(const char *message)
+{
+  HAL_UART_Transmit(&hcom_uart[COM1],
+                    (uint8_t *)message,
+                    (uint16_t)strlen(message),
+                    HAL_MAX_DELAY);
+}
+
+static void SetTestStage(test_stage_t stage)
+{
+  g_test_stage = stage;
+
+  BSP_LED_Off(LED_GREEN);
+  BSP_LED_Off(LED_BLUE);
+  BSP_LED_Off(LED_RED);
+
+  switch (stage)
+  {
+    case TEST_STAGE_AUDIO_CAPTURE:
+      BSP_LED_On(LED_GREEN);
+      break;
+
+    case TEST_STAGE_MFCC_READY:
+      BSP_LED_On(LED_BLUE);
+      break;
+
+    case TEST_STAGE_UART_TX:
+      BSP_LED_On(LED_RED);
+      break;
+
+    case TEST_STAGE_FAULT:
+      BSP_LED_On(LED_RED);
+      break;
+
+    case TEST_STAGE_BOOT:
+    default:
+      break;
+  }
+}
+
+static uint32_t ComputeFramePeakMilli(const float *samples, uint32_t sample_count)
+{
+  float peak = 0.0f;
+
+  for (uint32_t i = 0; i < sample_count; i++)
+  {
+    float value = samples[i];
+
+    if (value < 0.0f)
+    {
+      value = -value;
+    }
+
+    if (value > peak)
+    {
+      peak = value;
+    }
+  }
+
+  return (uint32_t)(peak * 1000.0f);
+}
+
+static int32_t FloatToMilli(float value)
+{
+  if (value >= 0.0f)
+  {
+    return (int32_t)(value * 1000.0f + 0.5f);
+  }
+
+  return (int32_t)(value * 1000.0f - 0.5f);
+}
+
+static void TransmitMfccSnapshot(void)
+{
+  char line[256];
+
+  snprintf(line,
+           sizeof(line),
+           "MFCC_BEGIN,%lu,FRAMES=%lu,PEAK_MILLI=%lu,SCALE=1000\r\n",
+           (unsigned long)mfcc_capture_count,
+           (unsigned long)audio_frame_count,
+           (unsigned long)last_frame_peak_milli);
+  Debug_Print(line);
+
+  for (uint32_t row = 0; row < MFCC_NUM_FRAMES; row++)
+  {
+    int length = snprintf(line,
+                          sizeof(line),
+                          "MFCC_ROW,%lu,%lu",
+                          (unsigned long)mfcc_capture_count,
+                          (unsigned long)row);
+
+    for (uint32_t col = 0; col < MFCC_NUM_COEFF; col++)
+    {
+      int32_t value_milli =
+          FloatToMilli(mfcc_32x13[row * MFCC_NUM_COEFF + col]);
+
+      length += snprintf(line + length,
+                         sizeof(line) - (size_t)length,
+                         ",%ld",
+                         (long)value_milli);
+    }
+
+    length += snprintf(line + length,
+                       sizeof(line) - (size_t)length,
+                       "\r\n");
+
+    HAL_UART_Transmit(&hcom_uart[COM1],
+                      (uint8_t *)line,
+                      (uint16_t)length,
+                      HAL_MAX_DELAY);
+  }
+
+  snprintf(line,
+           sizeof(line),
+           "MFCC_END,%lu\r\n",
+           (unsigned long)mfcc_capture_count);
+  Debug_Print(line);
+}
 
 /* USER CODE END 0 */
 
@@ -101,21 +236,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ICACHE_Init();
-  MX_DFSDM1_Init();
-  /* USER CODE BEGIN 2 */
-  Audio_Init();
-  MFCC_Init();
-  Audio_Start();
-  ModelTest_Init();
-  model_init();
-
-      char msg[] = "MODEL INIT\r\n";
-      HAL_UART_Transmit(&hcom_uart[COM1],
-                  (uint8_t*)msg,
-                  sizeof(msg)-1,
-                  HAL_MAX_DELAY);
-
-  /* USER CODE END 2 */
+  MX_SAI1_Init();
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
@@ -136,92 +257,67 @@ int main(void)
     Error_Handler();
   }
 
+  /* USER CODE BEGIN 2 */
+  Audio_Init();
+  MFCC_Init();
+  Audio_Start();
+  audio_frame_count = 0;
+  mfcc_capture_count = 0;
+  last_frame_peak_milli = 0;
+  SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
+
+  {
+    char msg[] = "I2S AUDIO+MFCC TEST INIT\r\n";
+    HAL_UART_Transmit(&hcom_uart[COM1],
+                      (uint8_t *)msg,
+                      sizeof(msg) - 1,
+                      HAL_MAX_DELAY);
+  }
+  /* USER CODE END 2 */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {  
-    BSP_LED_On(LED_GREEN);
-    BSP_LED_Off(LED_BLUE);
-    BSP_LED_Off(LED_RED);
-
-    char msg[] = "RUNNING LOOP\r\n";
-    HAL_UART_Transmit(&hcom_uart[COM1],
-                  (uint8_t*)msg,
-                  sizeof(msg)-1,
-                  HAL_MAX_DELAY);
-
-    // // ===== 模型推理测试 =====
-    // BSP_LED_On(LED_GREEN);
-    // BSP_LED_Off(LED_BLUE);
-    // BSP_LED_Off(LED_RED);
-    // // 单次测试
-    // uint32_t t = ModelTest_RunSingle(mfcc_32x13);
-
-    // HAL_UART_Transmit(&hcom_uart[COM1],
-    //                   (uint8_t*)&t,
-    //                   sizeof(t),
-    //                   HAL_MAX_DELAY);
-
-    // BSP_LED_Off(LED_GREEN);
-    // BSP_LED_Off(LED_BLUE);
-    // BSP_LED_Off(LED_RED);
-    // // 平均测试
-    // BSP_LED_Off(LED_GREEN);
-    // BSP_LED_On(LED_BLUE);
-    // BSP_LED_Off(LED_RED);
-
-    // model_perf_result_t perf = ModelTest_RunAverage(mfcc_32x13, 50);
-    // HAL_UART_Transmit(&hcom_uart[COM1],
-    //                   (uint8_t*)&perf,
-    //                   sizeof(perf),
-    //                   HAL_MAX_DELAY);
-
-    // BSP_LED_Off(LED_GREEN);
-    // BSP_LED_Off(LED_BLUE);
-    // BSP_LED_On(LED_RED);
-
-    // ===== 模型推理测试 =====
-
-    // ===== 模型推理 =====    
+  {
     if(Audio_FrameReady())
     {
+        char msg[96];
+
         Audio_GetFrame(audio_512);
         Audio_ClearFlag();
+        audio_frame_count++;
+        last_frame_peak_milli = ComputeFramePeakMilli(audio_512, AUDIO_FRAME_STEP);
 
         MFCC_Stream_PushSamples(audio_512);
+        SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
+
+        if ((audio_frame_count % 16U) == 0U)
+        {
+          snprintf(msg,
+                   sizeof(msg),
+                   "AUDIO_FRAME,%lu,PEAK_MILLI=%lu\r\n",
+                   (unsigned long)audio_frame_count,
+                   (unsigned long)last_frame_peak_milli);
+          Debug_Print(msg);
+        }
 
         if (MFCC_Stream_Ready())
         {
-            MFCC_Stream_Get(mfcc_32x13);
+          MFCC_Stream_Get(mfcc_32x13);
+          mfcc_capture_count++;
 
-            int result = model_inference(mfcc_32x13);
-            const float* output = model_get_output();
-            if (result >= 0)
-            {
-                switch (result)
-                {
-                    case 0: // 类别 0
-                        BSP_LED_On(LED_GREEN);
-                        BSP_LED_Off(LED_BLUE);
-                        BSP_LED_Off(LED_RED);
-                        break;
-                    case 1: // 类别 1
-                        BSP_LED_Off(LED_GREEN);
-                        BSP_LED_On(LED_BLUE);
-                        BSP_LED_Off(LED_RED);
-                        break;
-                    case 2: // 类别 2
-                        BSP_LED_Off(LED_GREEN);
-                        BSP_LED_Off(LED_BLUE);
-                        BSP_LED_On(LED_RED);
-                        break;
-                    default:
-                        break;
-                }
-            }
+          SetTestStage(TEST_STAGE_MFCC_READY);
+          snprintf(msg,
+                   sizeof(msg),
+                   "MFCC READY,%lu\r\n",
+                   (unsigned long)mfcc_capture_count);
+          Debug_Print(msg);
+
+          SetTestStage(TEST_STAGE_UART_TX);
+          TransmitMfccSnapshot();
+          SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
         }
     }
-    // ===== 模型推理 =====
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
   }
@@ -279,55 +375,51 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief DFSDM1 Initialization Function
+  * @brief SAI1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_DFSDM1_Init(void)
+static void MX_SAI1_Init(void)
 {
 
-  /* USER CODE BEGIN DFSDM1_Init 0 */
+  /* USER CODE BEGIN SAI1_Init 0 */
 
-  /* USER CODE END DFSDM1_Init 0 */
+  /* USER CODE END SAI1_Init 0 */
 
-  /* USER CODE BEGIN DFSDM1_Init 1 */
+  /* USER CODE BEGIN SAI1_Init 1 */
 
-  /* USER CODE END DFSDM1_Init 1 */
-  hdfsdm1_filter0.Instance = DFSDM1_Filter0;
-  hdfsdm1_filter0.Init.RegularParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
-  hdfsdm1_filter0.Init.RegularParam.FastMode = ENABLE;
-  hdfsdm1_filter0.Init.RegularParam.DmaMode = ENABLE;
-  hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_FASTSINC_ORDER;
-  hdfsdm1_filter0.Init.FilterParam.Oversampling = 1;
-  hdfsdm1_filter0.Init.FilterParam.IntOversampling = 1;
-  if (HAL_DFSDM_FilterInit(&hdfsdm1_filter0) != HAL_OK)
+  /* USER CODE END SAI1_Init 1 */
+  hsai_BlockB1.Instance = SAI1_Block_B;
+  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_RX;
+  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
+  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+  hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
+  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_16K;
+  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+  hsai_BlockB1.Init.Mckdiv = 0;
+  hsai_BlockB1.Init.MckOverSampling = SAI_MCK_OVERSAMPLING_DISABLE;
+  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+  hsai_BlockB1.Init.PdmInit.Activation = DISABLE;
+  hsai_BlockB1.Init.PdmInit.MicPairsNbr = 1;
+  hsai_BlockB1.Init.PdmInit.ClockEnable = SAI_PDM_CLOCK1_ENABLE;
+  if (HAL_SAI_InitProtocol(&hsai_BlockB1,
+                           SAI_I2S_STANDARD,
+                           SAI_PROTOCOL_DATASIZE_24BIT,
+                           2) != HAL_OK)
   {
     Error_Handler();
   }
-  hdfsdm1_channel0.Instance = DFSDM1_Channel0;
-  hdfsdm1_channel0.Init.OutputClock.Activation = ENABLE;
-  hdfsdm1_channel0.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-  hdfsdm1_channel0.Init.OutputClock.Divider = 2;
-  hdfsdm1_channel0.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
-  hdfsdm1_channel0.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
-  hdfsdm1_channel0.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
-  hdfsdm1_channel0.Init.SerialInterface.Type = DFSDM_CHANNEL_SPI_RISING;
-  hdfsdm1_channel0.Init.SerialInterface.SpiClock = DFSDM_CHANNEL_SPI_CLOCK_EXTERNAL;
-  hdfsdm1_channel0.Init.Awd.FilterOrder = DFSDM_CHANNEL_FASTSINC_ORDER;
-  hdfsdm1_channel0.Init.Awd.Oversampling = 1;
-  hdfsdm1_channel0.Init.Offset = 0;
-  hdfsdm1_channel0.Init.RightBitShift = 0x00;
-  if (HAL_DFSDM_ChannelInit(&hdfsdm1_channel0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_DFSDM_FilterConfigRegChannel(&hdfsdm1_filter0, DFSDM_CHANNEL_0, DFSDM_CONTINUOUS_CONV_ON) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN DFSDM1_Init 2 */
+  hsai_BlockB1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
+  MODIFY_REG(hsai_BlockB1.Instance->CR1,
+             SAI_xCR1_CKSTR,
+             hsai_BlockB1.Init.ClockStrobing);
+  /* USER CODE BEGIN SAI1_Init 2 */
 
-  /* USER CODE END DFSDM1_Init 2 */
+  /* USER CODE END SAI1_Init 2 */
 
 }
 
@@ -374,6 +466,7 @@ static void MX_DMA_Init(void)
   /* DMA controller clock enable */
   __HAL_RCC_DMAMUX1_CLK_ENABLE();
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* Configure DMA request hdma_dma_generator0 on DMA1_Channel2 */
   hdma_dma_generator0.Instance = DMA1_Channel2;
@@ -406,6 +499,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMA2_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+  /* SAI1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SAI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(SAI1_IRQn);
 
 }
 
