@@ -26,7 +26,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-extern SAI_HandleTypeDef hsai_BlockB1;
+extern DMA_HandleTypeDef hdma_dfsdm1_flt0;
+extern DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -57,6 +58,7 @@ extern SAI_HandleTypeDef hsai_BlockB1;
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_dma_generator0;
 extern DMA_HandleTypeDef hdma_sai1_b;
+extern SAI_HandleTypeDef hsai_BlockB1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -236,6 +238,7 @@ void DMA1_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
 
   /* USER CODE END DMA1_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_dfsdm1_flt0);
   /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
 
   /* USER CODE END DMA1_Channel1_IRQn 1 */
@@ -284,16 +287,16 @@ void SAI1_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
+void HAL_DFSDM_FilterRegConvCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
 {
-    if (hsai == &hsai_BlockB1) {
-      Audio_SAI_FullCallback();
+    if (hdfsdm_filter == &hdfsdm1_filter0) {
+      Audio_DFSDM_FullCallback();
     }
 }
-void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai)
+void HAL_DFSDM_FilterRegConvHalfCpltCallback(DFSDM_Filter_HandleTypeDef *hdfsdm_filter)
 {
-    if (hsai == &hsai_BlockB1) {
-        Audio_SAI_HalfCallback();
+    if (hdfsdm_filter == &hdfsdm1_filter0) {
+        Audio_DFSDM_HalfCallback();
     }
 }
 /* USER CODE END 1 */
