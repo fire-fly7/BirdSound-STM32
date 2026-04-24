@@ -39,7 +39,6 @@
 /*#define HAL_CRC_MODULE_ENABLED   */
 /*#define HAL_CRYP_MODULE_ENABLED   */
 /*#define HAL_DAC_MODULE_ENABLED   */
-#define HAL_DFSDM_MODULE_ENABLED
 /*#define HAL_FDCAN_MODULE_ENABLED   */
 /*#define HAL_GTZC_MODULE_ENABLED   */
 /*#define HAL_HASH_MODULE_ENABLED   */
@@ -192,7 +191,6 @@
 #define USE_HAL_COMP_REGISTER_CALLBACKS       0U
 #define USE_HAL_CRYP_REGISTER_CALLBACKS       0U
 #define USE_HAL_DAC_REGISTER_CALLBACKS        0U
-#define USE_HAL_DFSDM_REGISTER_CALLBACKS      0U
 #define USE_HAL_FDCAN_REGISTER_CALLBACKS      0U
 #define USE_HAL_HASH_REGISTER_CALLBACKS       0U
 #define USE_HAL_I2C_REGISTER_CALLBACKS        0U
@@ -253,10 +251,6 @@
 #ifdef HAL_DMA_MODULE_ENABLED
   #include "stm32l5xx_hal_dma.h"
 #endif /* HAL_DMA_MODULE_ENABLED */
-
-#ifdef HAL_DFSDM_MODULE_ENABLED
-  #include "stm32l5xx_hal_dfsdm.h"
-#endif /* HAL_DFSDM_MODULE_ENABLED */
 
 #ifdef HAL_CORTEX_MODULE_ENABLED
   #include "stm32l5xx_hal_cortex.h"

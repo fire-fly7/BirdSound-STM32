@@ -58,9 +58,6 @@ static float mfcc_32x13[MFCC_NUM_FRAMES * MFCC_NUM_COEFF];
 COM_InitTypeDef BspCOMInit;
 DMA_HandleTypeDef hdma_dma_generator0;
 SAI_HandleTypeDef hsai_BlockB1;
-DFSDM_Filter_HandleTypeDef hdfsdm1_filter0;
-DFSDM_Channel_HandleTypeDef hdfsdm1_channel0;
-DMA_HandleTypeDef hdma_dfsdm1_flt0;
 DMA_HandleTypeDef hdma_sai1_b;
 /* USER CODE BEGIN PV */
 static test_stage_t g_test_stage = TEST_STAGE_BOOT;
@@ -75,7 +72,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ICACHE_Init(void);
-static void MX_DFSDM1_Init(void);
+static void MX_SAI1_Init(void);
 /* USER CODE BEGIN PFP */
 static void Debug_Print(const char *message);
 static void SetTestStage(test_stage_t stage);
@@ -240,7 +237,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_ICACHE_Init();
-  MX_DFSDM1_Init();
+  MX_SAI1_Init();
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
@@ -264,16 +261,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Audio_Init();
   MFCC_Init();
-  if (!Audio_Start())
-  {
-    SetTestStage(TEST_STAGE_FAULT);
-    Error_Handler();
-  }
+  Audio_Start();
   audio_frame_count = 0;
   mfcc_capture_count = 0;
   last_frame_peak_milli = 0;
   SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
-  Debug_Print("PDM DFSDM AUDIO+MFCC TEST INIT\r\n");
+  Debug_Print("I2S AUDIO+MFCC TEST INIT\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -376,66 +369,48 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief DFSDM1 Initialization Function
+  * @brief SAI1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_DFSDM1_Init(void)
+static void MX_SAI1_Init(void)
 {
 
-  /* USER CODE BEGIN DFSDM1_Init 0 */
+  /* USER CODE BEGIN SAI1_Init 0 */
 
-  /* USER CODE END DFSDM1_Init 0 */
+  /* USER CODE END SAI1_Init 0 */
 
-  /* USER CODE BEGIN DFSDM1_Init 1 */
+  /* USER CODE BEGIN SAI1_Init 1 */
 
-  /* USER CODE END DFSDM1_Init 1 */
-
-  hdfsdm1_filter0.Instance = DFSDM1_Filter0;
-  hdfsdm1_filter0.Init.RegularParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
-  hdfsdm1_filter0.Init.RegularParam.FastMode = ENABLE;
-  hdfsdm1_filter0.Init.RegularParam.DmaMode = ENABLE;
-  hdfsdm1_filter0.Init.InjectedParam.Trigger = DFSDM_FILTER_SW_TRIGGER;
-  hdfsdm1_filter0.Init.InjectedParam.ScanMode = DISABLE;
-  hdfsdm1_filter0.Init.InjectedParam.DmaMode = DISABLE;
-  hdfsdm1_filter0.Init.InjectedParam.ExtTrigger = DFSDM_FILTER_EXT_TRIG_TIM1_TRGO;
-  hdfsdm1_filter0.Init.InjectedParam.ExtTriggerEdge = DFSDM_FILTER_EXT_TRIG_RISING_EDGE;
-  hdfsdm1_filter0.Init.FilterParam.SincOrder = DFSDM_FILTER_SINC3_ORDER;
-  hdfsdm1_filter0.Init.FilterParam.Oversampling = 125;
-  hdfsdm1_filter0.Init.FilterParam.IntOversampling = 1;
-  if (HAL_DFSDM_FilterInit(&hdfsdm1_filter0) != HAL_OK)
+  /* USER CODE END SAI1_Init 1 */
+  hsai_BlockB1.Instance = SAI1_Block_B;
+  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_RX;
+  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
+  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
+  hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
+  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
+  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_16K;
+  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
+  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
+  hsai_BlockB1.Init.Mckdiv = 0;
+  hsai_BlockB1.Init.MckOverSampling = SAI_MCK_OVERSAMPLING_DISABLE;
+  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
+  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
+  hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
+  if (HAL_SAI_InitProtocol(&hsai_BlockB1,
+                           SAI_I2S_STANDARD,
+                           SAI_PROTOCOL_DATASIZE_24BIT,
+                           2) != HAL_OK)
   {
     Error_Handler();
   }
+  hsai_BlockB1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
+  MODIFY_REG(hsai_BlockB1.Instance->CR1,
+             SAI_xCR1_CKSTR,
+             hsai_BlockB1.Init.ClockStrobing);
+  /* USER CODE BEGIN SAI1_Init 2 */
 
-  hdfsdm1_channel0.Instance = DFSDM1_Channel0;
-  hdfsdm1_channel0.Init.OutputClock.Activation = ENABLE;
-  hdfsdm1_channel0.Init.OutputClock.Selection = DFSDM_CHANNEL_OUTPUT_CLOCK_SYSTEM;
-  hdfsdm1_channel0.Init.OutputClock.Divider = 55;
-  hdfsdm1_channel0.Init.Input.Multiplexer = DFSDM_CHANNEL_EXTERNAL_INPUTS;
-  hdfsdm1_channel0.Init.Input.DataPacking = DFSDM_CHANNEL_STANDARD_MODE;
-  hdfsdm1_channel0.Init.Input.Pins = DFSDM_CHANNEL_SAME_CHANNEL_PINS;
-  hdfsdm1_channel0.Init.SerialInterface.Type = DFSDM_CHANNEL_SPI_RISING;
-  hdfsdm1_channel0.Init.SerialInterface.SpiClock = DFSDM_CHANNEL_SPI_CLOCK_INTERNAL;
-  hdfsdm1_channel0.Init.Awd.FilterOrder = DFSDM_CHANNEL_FASTSINC_ORDER;
-  hdfsdm1_channel0.Init.Awd.Oversampling = 1;
-  hdfsdm1_channel0.Init.Offset = 0;
-  hdfsdm1_channel0.Init.RightBitShift = 8;
-  if (HAL_DFSDM_ChannelInit(&hdfsdm1_channel0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  if (HAL_DFSDM_FilterConfigRegChannel(&hdfsdm1_filter0,
-                                       DFSDM_CHANNEL_0,
-                                       DFSDM_CONTINUOUS_CONV_ON) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /* USER CODE BEGIN DFSDM1_Init 2 */
-
-  /* USER CODE END DFSDM1_Init 2 */
+  /* USER CODE END SAI1_Init 2 */
 
 }
 
@@ -509,12 +484,15 @@ static void MX_DMA_Init(void)
   /* DMAMUX1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMAMUX1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMAMUX1_IRQn);
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+  /* DMA2_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+  /* SAI1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SAI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(SAI1_IRQn);
 
 }
 

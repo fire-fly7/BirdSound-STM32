@@ -64,7 +64,7 @@ The firmware initializes COM1 at `115200 8N1`.
 Expected startup message:
 
 ```text
-PDM DFSDM AUDIO+MFCC TEST INIT
+I2S AUDIO+MFCC TEST INIT
 ```
 
 During normal operation, UART output includes lines like:
@@ -77,34 +77,31 @@ MFCC_ROW,<count>,<row>,...
 MFCC_END,<count>
 ```
 
-## PDM Microphone GPIO
+## I2S Microphone GPIO
 
-The current firmware captures PDM microphone data through `DFSDM1_Filter0` and converts it to 512-sample float audio frames for MFCC processing.
+The current firmware captures I2S microphone data through `SAI1_Block_B` and converts it to 512-sample float audio frames for MFCC processing.
 
 | Signal | MCU pin | GPIO port/pin | Alternate function | Direction | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `PDM_DATA` | PB1 | GPIOB pin 1 | `GPIO_AF6_DFSDM1` | Microphone data to MCU | `DFSDM1_DATIN0` |
-| `PDM_CKIN` | PB2 | GPIOB pin 2 | `GPIO_AF6_DFSDM1` | Optional external PDM clock input | `DFSDM1_CKIN0`; not required with the current internal-clock firmware |
-| `PDM_CKOUT` | PF10 | GPIOF pin 10 | `GPIO_AF6_DFSDM1` | MCU clock output | `DFSDM1_CKOUT`; connect to microphone CLK |
+| `I2S_SD` | PB5 | GPIOB pin 5 | `GPIO_AF13_SAI1` | Microphone data to MCU | `SAI1_SD_B` |
+| `I2S_SCK` | PB3 | GPIOB pin 3 | `GPIO_AF13_SAI1` | MCU clock output | `SAI1_SCK_B` |
+| `I2S_WS` | PA4 | GPIOA pin 4 | `GPIO_AF13_SAI1` | MCU word-select output | `SAI1_FS_B` |
 
-DFSDM settings used by the firmware:
+SAI/I2S settings used by the firmware:
 
 | Setting | Value |
 | --- | --- |
-| Filter | `DFSDM1_Filter0` |
-| Channel | `DFSDM1_Channel0` |
-| Regular channel | `DFSDM_CHANNEL_0` |
-| Mode | Continuous regular conversion |
-| Filter order | `DFSDM_FILTER_SINC3_ORDER` |
-| Filter oversampling | `125` |
-| Output clock divider | `55` |
-| SPI clock source | `DFSDM_CHANNEL_SPI_CLOCK_INTERNAL` |
-| DMA | `DMA1_Channel1`, request `DMA_REQUEST_DFSDM1_FLT0`, circular mode |
+| Peripheral | `SAI1_Block_B` |
+| Mode | Master receive |
+| Standard | `SAI_I2S_STANDARD` |
+| Data size | 24-bit protocol data |
+| Audio frequency | 16 kHz |
+| DMA | `DMA2_Channel1`, request `DMA_REQUEST_SAI1_B`, circular mode |
 
 Important checks when `PEAK_MILLI=0`:
 
 - Confirm the microphone or X-NUCLEO-CCA02M2 board has the correct 3.3 V power and ground.
-- Confirm the PDM data line is routed to `PB1 / DFSDM1_DATIN0`.
-- Confirm `PF10 / DFSDM1_CKOUT` is routed to the microphone clock input.
-- Confirm the microphone is a PDM microphone, such as the MP34DT06J used on X-NUCLEO-CCA02M2.
-- The old I2S wiring for ICS43434 (`PB5/PB3/PA4`) is no longer used by this firmware.
+- Confirm the microphone data line is routed to `PB5 / SAI1_SD_B`.
+- Confirm `PB3 / SAI1_SCK_B` is routed to the microphone bit clock input.
+- Confirm `PA4 / SAI1_FS_B` is routed to the microphone word-select input.
+- Confirm the microphone output is I2S-compatible.
