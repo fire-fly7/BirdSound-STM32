@@ -1,0 +1,8 @@
+# Preserve packaged firmware bytes and keep generated Intel HEX out of text diffs.
+firmware/**/*.bin binary
+firmware/**/*.hex binary
+firmware/**/*.tflite binary
+firmware/*.zip binary
+
+# Python's CSV writer emits CRLF; retain it so package SHA-256 stays reproducible.
+firmware/**/INDEX.csv text eol=crlf

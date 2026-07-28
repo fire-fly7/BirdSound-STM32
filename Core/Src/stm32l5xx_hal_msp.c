@@ -23,7 +23,9 @@
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 extern DMA_HandleTypeDef hdma_sai1_b;
+#endif
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
@@ -82,6 +84,7 @@ void HAL_MspInit(void)
   /* USER CODE END MspInit 1 */
 }
 
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 static uint32_t SAI1_client = 0U;
 
 void HAL_SAI_MspInit(SAI_HandleTypeDef* hsai)
@@ -172,3 +175,4 @@ void HAL_SAI_MspDeInit(SAI_HandleTypeDef* hsai)
     HAL_DMA_DeInit(hsai->hdmarx);
   }
 }
+#endif

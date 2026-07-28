@@ -34,10 +34,6 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "audio_capture.h"
-#include "mfcc.h"
-#include "model_inference.h"
-#include "model_test.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -67,13 +63,10 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define MIC_SD_GPIO_PORT     GPIOB
 #define MIC_SD_PIN           GPIO_PIN_5
-
 #define MIC_SCK_GPIO_PORT    GPIOB
 #define MIC_SCK_PIN          GPIO_PIN_3
-
 #define MIC_WS_GPIO_PORT     GPIOA
 #define MIC_WS_PIN           GPIO_PIN_4
-
 #define MIC_GPIO_AF          GPIO_AF13_SAI1
 
 #define MIC_SD_GPIO_CLK_ENABLE()   __HAL_RCC_GPIOB_CLK_ENABLE()

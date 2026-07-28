@@ -22,11 +22,16 @@
 #include "stm32l5xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
+#include "audio_capture.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 extern SAI_HandleTypeDef hsai_BlockB1;
+#endif
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -55,8 +60,10 @@ extern SAI_HandleTypeDef hsai_BlockB1;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 extern DMA_HandleTypeDef hdma_dma_generator0;
 extern DMA_HandleTypeDef hdma_sai1_b;
+#endif
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -221,8 +228,10 @@ void DMAMUX1_IRQHandler(void)
   /* USER CODE BEGIN DMAMUX1_IRQn 0 */
 
   /* USER CODE END DMAMUX1_IRQn 0 */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
   // Handle DMA1_Channel2
   HAL_DMAEx_MUX_IRQHandler(&hdma_dma_generator0);
+#endif
   /* USER CODE BEGIN DMAMUX1_IRQn 1 */
 
   /* USER CODE END DMAMUX1_IRQn 1 */
@@ -236,7 +245,9 @@ void DMA1_Channel2_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
 
   /* USER CODE END DMA1_Channel2_IRQn 0 */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
   HAL_DMA_IRQHandler(&hdma_dma_generator0);
+#endif
   /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
 
   /* USER CODE END DMA1_Channel2_IRQn 1 */
@@ -250,7 +261,9 @@ void DMA2_Channel1_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Channel1_IRQn 0 */
 
   /* USER CODE END DMA2_Channel1_IRQn 0 */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
   HAL_DMA_IRQHandler(&hdma_sai1_b);
+#endif
   /* USER CODE BEGIN DMA2_Channel1_IRQn 1 */
 
   /* USER CODE END DMA2_Channel1_IRQn 1 */
@@ -264,7 +277,9 @@ void SAI1_IRQHandler(void)
   /* USER CODE BEGIN SAI1_IRQn 0 */
 
   /* USER CODE END SAI1_IRQn 0 */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
   HAL_SAI_IRQHandler(&hsai_BlockB1);
+#endif
   /* USER CODE BEGIN SAI1_IRQn 1 */
 
   /* USER CODE END SAI1_IRQn 1 */
@@ -273,14 +288,22 @@ void SAI1_IRQHandler(void)
 /* USER CODE BEGIN 1 */
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
 {
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
     if (hsai == &hsai_BlockB1) {
       Audio_SAI_FullCallback();
     }
+#else
+    (void)hsai;
+#endif
 }
 void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai)
 {
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
     if (hsai == &hsai_BlockB1) {
         Audio_SAI_HalfCallback();
     }
+#else
+    (void)hsai;
+#endif
 }
 /* USER CODE END 1 */
