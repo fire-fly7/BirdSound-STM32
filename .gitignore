@@ -11,3 +11,9 @@ CMakeFiles/
 # Local board benchmark corpus and generated results
 /board_testset/
 /board_results/
+
+# Generated firmware release packages are published as GitHub Release assets.
+# Keeping them out of Git avoids circular "artifact commit builds itself"
+# provenance and stale binaries on main.
+/firmware/STM32_deploy_*_pack_*/
+/firmware/STM32_deploy_*_pack_*.zip

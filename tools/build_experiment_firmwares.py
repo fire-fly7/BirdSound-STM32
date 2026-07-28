@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -19,10 +20,13 @@ from typing import Any
 TENSOR_ARENA_BYTES = 98_304
 
 GROUPS = (
-    ("01_zero_shot_strict", "ZeroShot_strict_INT8_quantization_8class"),
-    ("02_db3v_strict", "DB3V_strict_INT8_quantization_8class"),
-    ("03_birdset_strict", "BirdSet_strict_INT8_quantization_8class"),
+    ("01_zero_shot_strict", "INT8_quantization_8class", "zero_shot"),
+    ("02_db3v_strict", "DB3V_strict_INT8_quantization_8class", None),
+    ("03_birdset_strict", "BirdSet_strict_INT8_quantization_8class", None),
 )
+
+BUILD_INPUT_EXCLUDED_PREFIXES = ("docs/", "evidence/", "firmware/")
+BUILD_INPUT_EXCLUDED_FILES = {".gitignore", "README.md"}
 
 CORE_EXPERIMENTS = {
     "zero_shot_mfcc": "零样本特征对比：MFCC",
@@ -84,12 +88,83 @@ def git_value(repo: Path, *arguments: str) -> str:
     return result.stdout.strip()
 
 
+def git_bytes(repo: Path, *arguments: str) -> bytes:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=repo,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode != 0:
+        raise PackageError(
+            f"git {' '.join(arguments)} failed:\n"
+            f"{result.stdout.decode('utf-8', errors='replace')}"
+        )
+    return result.stdout
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         while chunk := stream.read(1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def build_inputs_sha256(repo: Path) -> tuple[str, list[dict[str, str]]]:
+    """Hash tracked build inputs by Git object ID, including gitlinks."""
+    records: list[dict[str, str]] = []
+    for entry in git_bytes(repo, "ls-files", "-s", "-z").split(b"\0"):
+        if not entry:
+            continue
+        metadata, raw_path = entry.split(b"\t", 1)
+        mode, object_id, stage = metadata.decode("ascii").split()
+        path = raw_path.decode("utf-8", errors="surrogateescape")
+        if stage != "0":
+            raise PackageError(f"unmerged build input in Git index: {path}")
+        if path in BUILD_INPUT_EXCLUDED_FILES or path.startswith(
+            BUILD_INPUT_EXCLUDED_PREFIXES
+        ):
+            continue
+        records.append({"path": path, "mode": mode, "object_id": object_id})
+    digest = hashlib.sha256()
+    for record in records:
+        digest.update(record["path"].encode("utf-8", errors="surrogateescape"))
+        digest.update(b"\0")
+        digest.update(record["mode"].encode("ascii"))
+        digest.update(b"\0")
+        digest.update(record["object_id"].encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest(), records
+
+
+def checked_submodules(repo: Path) -> list[dict[str, str]]:
+    output = git_value(repo, "submodule", "status", "--recursive")
+    submodules: list[dict[str, str]] = []
+    for line in output.splitlines():
+        if not line:
+            continue
+        state = line[0]
+        fields = line[1:].split()
+        if state != " " or len(fields) < 2:
+            raise PackageError(
+                "all submodules must be initialized at the recorded commit; "
+                f"got {line!r}"
+            )
+        submodules.append({"path": fields[1], "commit": fields[0]})
+    if not any(item["path"] == "Drivers/tflite-micro" for item in submodules):
+        raise PackageError("Drivers/tflite-micro is not an initialized submodule")
+    return submodules
+
+
+def command_version(command: list[str], cwd: Path) -> str:
+    result = run(command, cwd)
+    if result.returncode != 0 or not result.stdout.strip():
+        raise PackageError(
+            f"cannot record tool version for {' '.join(command)}:\n{result.stdout}"
+        )
+    return result.stdout.strip().splitlines()[0]
 
 
 def coerce(value: str) -> Any:
@@ -112,13 +187,15 @@ def load_experiments(model_train: Path) -> list[dict[str, Any]]:
     experiments_root = model_train / "src" / "experiments"
     experiments: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for package_group, source_group in GROUPS:
+    for package_group, source_group, family_filter in GROUPS:
         summary_path = experiments_root / source_group / "summary.csv"
         try:
             with summary_path.open(encoding="utf-8", newline="") as stream:
                 rows = list(csv.DictReader(stream))
         except OSError as exc:
             raise PackageError(f"cannot read {summary_path}: {exc}") from exc
+        if family_filter is not None:
+            rows = [row for row in rows if row.get("family") == family_filter]
         summary_chains = {row.get("chain_id", "") for row in rows}
         exported_chains = {
             path.parent.name
@@ -126,6 +203,12 @@ def load_experiments(model_train: Path) -> list[dict[str, Any]]:
                 "*/DS_CNN_Model.int8.tflite"
             )
         }
+        if family_filter is not None:
+            exported_chains = {
+                chain_id
+                for chain_id in exported_chains
+                if chain_id.startswith(f"{family_filter}_")
+            }
         if summary_chains != exported_chains:
             raise PackageError(
                 f"summary/model mismatch in {source_group}: "
@@ -188,7 +271,10 @@ def package_one(
     label_map: Path,
     model_train_commit: str,
     firmware_commit: str,
-    firmware_dirty: bool,
+    firmware_tree: str,
+    firmware_build_inputs: str,
+    submodules: list[dict[str, str]],
+    toolchain: dict[str, str],
     jobs: int,
     include_elf: bool,
 ) -> dict[str, Any]:
@@ -250,7 +336,7 @@ def package_one(
     }
 
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "chain_id": chain_id,
         "group": experiment["package_group"],
         "source_group": experiment["source_group"],
@@ -266,7 +352,11 @@ def package_one(
         "model_sha256": model_digest,
         "model_train_commit": model_train_commit,
         "firmware_source_commit": firmware_commit,
-        "firmware_source_dirty": firmware_dirty,
+        "firmware_source_tree": firmware_tree,
+        "firmware_source_dirty": False,
+        "firmware_build_inputs_sha256": firmware_build_inputs,
+        "submodules": submodules,
+        "toolchain": toolchain,
         "build_type": "Release",
         "metrics": experiment["metrics"],
         "files": files,
@@ -298,8 +388,9 @@ def render_readme(index: list[dict[str, Any]], model_train_commit: str) -> str:
 `STM32_deploy.hex`/`STM32_deploy.bin`、对应的桌面 `model.tflite`、量化 metadata、
 模型 bundle 和包含文件哈希的 `experiment.json`。
 
-固件 Tensor Arena 为 96 KiB。实板 `zero_shot_logmel` 测得使用量为 79,172 B；
-不要使用早期 72 KiB 固件，它会返回模型初始化错误 `-4`。
+固件 Tensor Arena 配置为 96 KiB。`provenance.json` 记录干净源码提交、源码树、
+构建输入摘要、TFLM 子模块提交和工具链版本；板端实际 Arena 用量必须以配套验证
+结果中的原始 `info.json`/`info.log` 为准。
 
 ## 目录
 
@@ -307,6 +398,7 @@ def render_readme(index: list[dict[str, Any]], model_train_commit: str) -> str:
 - `experiments/02_db3v_strict/`：27 个 DB3V 严格多种子实验；
 - `experiments/03_birdset_strict/`：27 个 BirdSet 严格多种子实验；
 - `INDEX.csv`/`index.json`：全部固件接口、指标、路径与哈希；
+- `provenance.json`：可机器核验的源码、子模块和工具链来源；
 - `CORE_EXPERIMENTS.txt`：建议优先烧录的实验路径；
 - `SHA256SUMS`：整个包的文件校验值。
 
@@ -401,9 +493,11 @@ def write_indexes(
     staging_dir: Path,
     index: list[dict[str, Any]],
     model_train_commit: str,
+    provenance: dict[str, Any],
 ) -> None:
     index_path = staging_dir / "index.json"
     write_json(index_path, index)
+    write_json(staging_dir / "provenance.json", provenance)
 
     fields = (
         "chain_id",
@@ -510,7 +604,21 @@ def main() -> int:
                 "Model_train worktree is dirty; commit the exact model state before packaging"
             )
         firmware_commit = git_value(source_dir, "rev-parse", "HEAD")
-        firmware_dirty = bool(git_value(source_dir, "status", "--porcelain"))
+        if git_value(source_dir, "status", "--porcelain"):
+            raise PackageError(
+                "firmware worktree is dirty; commit the exact source state "
+                "before packaging"
+            )
+        firmware_tree = git_value(source_dir, "rev-parse", "HEAD^{tree}")
+        firmware_build_inputs, build_input_records = build_inputs_sha256(source_dir)
+        submodules = checked_submodules(source_dir)
+        toolchain = {
+            "python": sys.version.split()[0],
+            "cmake": command_version(["cmake", "--version"], source_dir),
+            "arm_none_eabi_gcc": command_version(
+                ["arm-none-eabi-gcc", "--version"], source_dir
+            ),
+        }
         label_map = model_train / "src" / "dataset_processing" / "label_map_8class.json"
         if not label_map.is_file():
             raise PackageError(f"label map does not exist: {label_map}")
@@ -526,13 +634,30 @@ def main() -> int:
             missing = requested - {experiment["chain_id"] for experiment in experiments}
             if missing:
                 raise PackageError(f"unknown chain_id values: {sorted(missing)}")
+        provenance = {
+            "schema_version": 1,
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "firmware_source_commit": firmware_commit,
+            "firmware_source_tree": firmware_tree,
+            "firmware_source_dirty": False,
+            "firmware_build_inputs_sha256": firmware_build_inputs,
+            "firmware_build_inputs": build_input_records,
+            "model_train_commit": model_commit,
+            "model_train_dirty": False,
+            "submodules": submodules,
+            "toolchain": toolchain,
+            "build_type": "Release",
+            "tensor_arena_bytes": TENSOR_ARENA_BYTES,
+        }
         staging_dir.mkdir(parents=True)
         (staging_dir / "tools").mkdir()
         shutil.copy2(source_dir / "flash.cfg", staging_dir / "flash.cfg")
         for name in (
+            "build_experiment_firmwares.py",
             "flash_experiment.py",
             "run_board_benchmark.py",
             "serial_model_client.py",
+            "verify_firmware_release.py",
             "requirements-serial.txt",
         ):
             shutil.copy2(source_dir / "tools" / name, staging_dir / "tools" / name)
@@ -554,13 +679,17 @@ def main() -> int:
                     label_map=label_map,
                     model_train_commit=model_commit,
                     firmware_commit=firmware_commit,
-                    firmware_dirty=firmware_dirty,
+                    firmware_tree=firmware_tree,
+                    firmware_build_inputs=firmware_build_inputs,
+                    submodules=submodules,
+                    toolchain=toolchain,
                     jobs=args.jobs,
                     include_elf=args.include_elf,
                 )
             )
 
-        write_indexes(staging_dir, index, model_commit)
+        provenance["firmwares"] = len(index)
+        write_indexes(staging_dir, index, model_commit, provenance)
         write_checksums(staging_dir)
         staging_dir.replace(output_dir)
         zip_path = create_zip(output_dir)

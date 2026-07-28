@@ -2,7 +2,7 @@
 
 面向 `NUCLEO-L552ZE-Q / STM32L552ZE-Q` 的鸟声分类模型部署与板端对拍工程。
 训练端为 [fire-fly7/Model_train](https://github.com/fire-fly7/Model_train)，当前核对基线是
-提交 `42ead2e614e3f40afc7da29e660fc94609d10817`。
+提交 `fce2d285f2f8e6c3f22495e28a48734fef782a0c`。
 
 当前无麦克风实验的主链路为“原始 PCM16 录音 → 串口 → 板端切窗 → 板端
 MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只读取 WAV、
@@ -10,12 +10,10 @@ MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只
 
 ## 已生成的可烧录实验包
 
-完整的 57 模型 Release 固件包位于：
-
-```text
-firmware/STM32_deploy_raw_audio_experiment_pack_42ead2e6/
-firmware/STM32_deploy_raw_audio_experiment_pack_42ead2e6.zip
-```
+完整的 57 模型固件包从
+[GitHub Releases](https://github.com/fire-fly7/LED_TEST/releases) 下载。生成包不再
+提交到 Git 树；包内 `provenance.json` 和每个 `experiment.json` 均记录干净的
+LED_TEST/Model_train 提交、源码树、构建输入摘要、TFLM 子模块提交和工具链版本。
 
 包内每条实验链路都包含独立的 HEX/BIN、对应 TFLite、量化 metadata、论文指标、
 SHA-256 和烧录/原始 WAV 串口测试工具。所有固件均支持板端 MFCC、LogMel 或
@@ -26,19 +24,38 @@ PCEN；优先实验列表、烧录命令和效果测试顺序见包内 `README.m
 `BirdSet_strict` 三组实验；已删除的旧单种子、旧 few-shot 和旧混合 INT8 链路
 不会进入板端清单或固件包。
 
-实板验证使用 96 KiB Tensor Arena：40-bin 模型实际占用约 79.2 KiB。早期
-72 KiB 配置会触发模型初始化错误 `-4`，现有固件包已全部按 96 KiB 重建。
+固件配置 96 KiB Tensor Arena。实际占用、推理延迟、烧录状态和分类指标只引用
+`evidence/` 中提交的原始 `info.json`、串口日志、`predictions.csv` 与汇总，不再
+把无原始记录的人工数值当作实板结果。
 
-从一个干净的 Model_train 工作树重新生成同类固件包：
+干净克隆会初始化官方 TFLite Micro 子模块；首次 CMake 配置自动下载该 TFLM
+提交锁定且校验过的 FlatBuffers、gemmlowp 和 ruy 版本：
+
+```sh
+git clone --recurse-submodules https://github.com/fire-fly7/LED_TEST.git
+cd LED_TEST
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/release -j
+```
+
+从干净的 LED_TEST 和 Model_train 工作树重新生成 57 模型固件包。输出应放在
+源码树外或被忽略的位置：
 
 ```sh
 python3 tools/build_experiment_firmwares.py \
   --model-train /path/to/Model_train \
-  --output-dir firmware/STM32_deploy_raw_audio_experiment_pack_<commit前8位>
+  --output-dir /tmp/STM32_deploy_raw_audio_experiment_pack_<commit前8位>
 ```
 
-构建器从 Model_train 当前 `HEAD` 写入来源提交，并核对三个正式目录中
-`summary.csv` 与模型导出完全一致；训练工作树有未提交改动时会拒绝打包。
+构建器核对 3 个零样本、27 个 DB3V 和 27 个 BirdSet 导出；任一工作树有未提交
+改动、子模块未初始化或偏离记录提交时都会拒绝打包。下载后可机器核验：
+
+```sh
+python3 tools/verify_firmware_release.py \
+  --pack /path/to/unpacked-package \
+  --source-dir . \
+  --model-train /path/to/Model_train
+```
 
 ## 软件边界
 
@@ -127,7 +144,7 @@ cmake -S . -B build/zero_shot_mfcc \
   -DCMAKE_BUILD_TYPE=Debug \
   -DSTM32_MODEL_TFLITE="$MODEL_DIR/DS_CNN_Model.int8.tflite" \
   -DSTM32_MODEL_LABEL_MAP="$MODEL_TRAIN/src/dataset_processing/label_map_8class.json" \
-  -DSTM32_MODEL_SOURCE_COMMIT=42ead2e614e3f40afc7da29e660fc94609d10817
+  -DSTM32_MODEL_SOURCE_COMMIT=fce2d285f2f8e6c3f22495e28a48734fef782a0c
 cmake --build build/zero_shot_mfcc -j
 ```
 

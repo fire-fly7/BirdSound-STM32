@@ -1,0 +1,3 @@
+[submodule "Drivers/tflite-micro"]
+	path = Drivers/tflite-micro
+	url = https://github.com/tensorflow/tflite-micro.git

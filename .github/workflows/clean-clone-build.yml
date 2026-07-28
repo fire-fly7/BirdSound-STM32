@@ -1,0 +1,45 @@
+name: clean-clone-build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the exact source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Arm GNU Toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1.12.3
+        with:
+          release: 14.2.Rel1
+
+      - name: Configure from a clean clone
+        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile HEX and BIN
+        run: cmake --build build/ci --parallel 4
+
+      - name: Record build evidence
+        run: |
+          git status --short
+          git submodule status --recursive
+          arm-none-eabi-gcc --version
+          sha256sum build/ci/STM32_deploy.hex build/ci/STM32_deploy.bin
+
+      - name: Upload directly flashable default firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: STM32_deploy-${{ github.sha }}
+          path: |
+            build/ci/STM32_deploy.hex
+            build/ci/STM32_deploy.bin
+          if-no-files-found: error

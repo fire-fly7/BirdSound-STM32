@@ -61,6 +61,48 @@ set(STM32_MODEL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc")
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+# TFLite Micro keeps FlatBuffers, gemmlowp, and ruy outside its source tree.
+# Fetch the versions locked and checksum-verified by the pinned TFLM commit on
+# the first clean-clone configure. The downloads directory is ignored by the
+# submodule, so this does not make the recorded source revision dirty.
+set(TFLM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/tflite-micro")
+set(TFLM_MAKEFILE
+    "${TFLM_ROOT}/tensorflow/lite/micro/tools/make/Makefile")
+set(TFLM_DOWNLOADS_DIR
+    "${TFLM_ROOT}/tensorflow/lite/micro/tools/make/downloads")
+set(TFLM_REQUIRED_DEPENDENCIES
+    "${TFLM_DOWNLOADS_DIR}/flatbuffers/include/flatbuffers/flatbuffers.h"
+    "${TFLM_DOWNLOADS_DIR}/gemmlowp/fixedpoint/fixedpoint.h"
+    "${TFLM_DOWNLOADS_DIR}/ruy/ruy/profiler/instrumentation.h")
+
+if(NOT EXISTS "${TFLM_ROOT}/tensorflow/lite/kernels/kernel_util.cc")
+    message(FATAL_ERROR
+            "TFLite Micro submodule is missing. Run:\n"
+            "  git submodule update --init --recursive")
+endif()
+
+set(TFLM_DEPENDENCIES_MISSING FALSE)
+foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
+    if(NOT EXISTS "${TFLM_DEPENDENCY}")
+        set(TFLM_DEPENDENCIES_MISSING TRUE)
+    endif()
+endforeach()
+if(TFLM_DEPENDENCIES_MISSING)
+    find_program(MAKE_EXECUTABLE NAMES make gmake REQUIRED)
+    message(STATUS "Fetching checksum-locked TFLite Micro dependencies")
+    execute_process(
+        COMMAND "${MAKE_EXECUTABLE}" -f
+                tensorflow/lite/micro/tools/make/Makefile
+                third_party_downloads
+        WORKING_DIRECTORY "${TFLM_ROOT}"
+        RESULT_VARIABLE TFLM_DOWNLOAD_RESULT)
+    if(NOT TFLM_DOWNLOAD_RESULT EQUAL 0)
+        message(FATAL_ERROR
+                "TFLite Micro dependency bootstrap failed with "
+                "exit code ${TFLM_DOWNLOAD_RESULT}")
+    endif()
+endif()
+
 if(STM32_MODEL_TFLITE)
     get_filename_component(STM32_MODEL_TFLITE_ABSOLUTE
                            "${STM32_MODEL_TFLITE}" ABSOLUTE
