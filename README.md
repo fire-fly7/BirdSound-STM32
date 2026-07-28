@@ -1,107 +1,300 @@
-# LED_TEST
+# STM32_deploy
 
-Target board: NUCLEO-L552ZE-Q / STM32L552ZE-Q.
+面向 `NUCLEO-L552ZE-Q / STM32L552ZE-Q` 的鸟声分类模型部署与板端对拍工程。
+训练端为 [fire-fly7/Model_train](https://github.com/fire-fly7/Model_train)，当前核对基线是
+提交 `42ead2e614e3f40afc7da29e660fc94609d10817`。
 
-## Build
+当前无麦克风实验的主链路为“原始 PCM16 录音 → 串口 → 板端切窗 → 板端
+MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只读取 WAV、
+校验格式和分块传输，不生成特征。原有 `.npy` 特征张量命令保留为数值回归接口。
+
+## 已生成的可烧录实验包
+
+完整的 57 模型 Release 固件包位于：
+
+```text
+firmware/STM32_deploy_raw_audio_experiment_pack_42ead2e6/
+firmware/STM32_deploy_raw_audio_experiment_pack_42ead2e6.zip
+```
+
+包内每条实验链路都包含独立的 HEX/BIN、对应 TFLite、量化 metadata、论文指标、
+SHA-256 和烧录/原始 WAV 串口测试工具。所有固件均支持板端 MFCC、LogMel 或
+PCEN；优先实验列表、烧录命令和效果测试顺序见包内 `README.md` 与
+`CORE_EXPERIMENTS.txt`。
+
+该包只包含 Model_train 当前正式的 `ZeroShot_strict`、`DB3V_strict` 和
+`BirdSet_strict` 三组实验；已删除的旧单种子、旧 few-shot 和旧混合 INT8 链路
+不会进入板端清单或固件包。
+
+实板验证使用 96 KiB Tensor Arena：40-bin 模型实际占用约 79.2 KiB。早期
+72 KiB 配置会触发模型初始化错误 `-4`，现有固件包已全部按 96 KiB 重建。
+
+从一个干净的 Model_train 工作树重新生成同类固件包：
 
 ```sh
-cd .. && rm -rf build/ && mkdir build && cd build && cmake .. && make
+python3 tools/build_experiment_firmwares.py \
+  --model-train /path/to/Model_train \
+  --output-dir firmware/STM32_deploy_raw_audio_experiment_pack_<commit前8位>
 ```
 
-## Flash
+构建器从 Model_train 当前 `HEAD` 写入来源提交，并核对三个正式目录中
+`summary.csv` 与模型导出完全一致；训练工作树有未提交改动时会拒绝打包。
+
+## 软件边界
+
+```text
+mono 16-kHz PCM16 WAV
+          |
+          v
+tools/serial_model_client.py
+          |  UART 115200 8N1
+          v
+App/Serial/serial_model_app
+          |
+          v
+App/AudioFrontend
+  split 1-second windows
+  MFCC / LogMel / PCEN
+          |
+          v
+Core/model_inference + TFLite Micro
+          |
+          v
+window inference + recording mean scores
+
+Core/audio_capture + legacy Core/mfcc
+          ^
+          |
+    麦克风采集（独立，当前目标不编译、不启动）
+```
+
+串口固件使用 CMSIS-DSP 做 2048 点 RFFT，但不编译 `audio_capture.c` 和历史
+`Core/Src/mfcc.c`；`main.c` 也不会调用 SAI/DMA 初始化。SAI 中断回调只有定义
+`STM32_DEPLOY_MICROPHONE_FRONTEND` 时才会连接麦克风采集代码。因此串口录音实验
+与麦克风采集之间没有运行时依赖。
+
+## Model_train 模型覆盖
+
+已审计该提交中三个正式 strict 目录的 57 个 `DS_CNN_Model.int8.tflite` 导出。
+固件注册了它们所需算子集合：
+
+```text
+ADD, CONV_2D, DEPTHWISE_CONV_2D, FULLY_CONNECTED,
+MAX_POOL_2D, MEAN, MUL, LOGISTIC, SOFTMAX
+```
+
+支持的接口组合如下：
+
+| 特征 | 输入 | 输出 | 激活 |
+| --- | --- | --- | --- |
+| MFCC | `int8 [1,32,13,1]` | `int8 [1,8]` | softmax 或 sigmoid |
+| LogMel | `int8 [1,32,40,1]` | `int8 [1,8]` | softmax 或 sigmoid |
+| PCEN | `int8 [1,32,40,1]` | `int8 [1,8]` | softmax 或 sigmoid |
+
+不同模型的输入 scale/zero-point 并不相同。构建时的模型生成器会从同目录
+`*.int8_metadata.json` 读取形状、激活、量化参数和算子，不使用硬编码的 LogMel
+参数；不兼容或缺少信息的导出会在 CMake 配置阶段直接报错。
+
+标签顺序为：
+
+```text
+0 Agelaius_phoeniceus
+1 Cardinalis_cardinalis
+2 Certhia_americana
+3 Corvus_brachyrhynchos
+4 Setophaga_aestiva
+5 Setophaga_ruticilla
+6 Spinus_tristis
+7 Turdus_migratorius
+```
+
+## 选择并构建任意模型
+
+不传模型路径时，使用仓库内置的 `zero_shot_logmel` 默认模型：
 
 ```sh
-openocd -f flash.cfg
+cmake --preset Debug
+cmake --build --preset Debug -j
 ```
 
-Expected successful flash output includes:
+选择 Model_train 的任意导出：
+
+```sh
+MODEL_TRAIN=/path/to/Model_train
+MODEL_DIR="$MODEL_TRAIN/src/experiments/ZeroShot_strict_INT8_quantization_8class/models/zero_shot_mfcc"
+
+cmake -S . -B build/zero_shot_mfcc \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DSTM32_MODEL_TFLITE="$MODEL_DIR/DS_CNN_Model.int8.tflite" \
+  -DSTM32_MODEL_LABEL_MAP="$MODEL_TRAIN/src/dataset_processing/label_map_8class.json" \
+  -DSTM32_MODEL_SOURCE_COMMIT=42ead2e614e3f40afc7da29e660fc94609d10817
+cmake --build build/zero_shot_mfcc -j
+```
+
+生成物位于构建目录：
 
 ```text
-** Programming Finished **
-** Verify Started **
-** Verified OK **
-** Resetting Target **
+STM32_deploy.elf
+STM32_deploy.bin
+STM32_deploy.hex
+generated/model/model_data.c
+generated/model/model_manifest.h
+generated/model/model_bundle.json
 ```
 
-## Board Jumper Check
+40-bin 模型通常可由路径和 metadata 自动判定 LogMel/PCEN。如果自定义导出的路径
+没有特征类型线索，需显式添加 `-DSTM32_MODEL_FEATURE=LOGMEL` 或
+`-DSTM32_MODEL_FEATURE=PCEN`。
 
-For programming the on-board STM32L552 with the on-board ST-LINK:
+连接板载 ST-LINK 后烧录默认 Debug 固件：
 
-| Jumper | Expected state | Purpose |
-| --- | --- | --- |
-| CN4 [1-2] | ON | ST-LINK SWCLK to target MCU |
-| CN4 [3-4] | ON | ST-LINK SWDIO to target MCU |
-| JP3 | ON | ST-LINK reset to target MCU |
-| JP4 [1-2] | ON | VDD_MCU = 3.3 V |
-| JP4 [2-3] | OFF | 1.8 V mode not used |
-| JP5 [1-2] | ON | MCU VDD / IDD measurement path |
-| JP6 [1-2] | ON | 5 V from ST-LINK USB |
-| JP6 other positions | OFF | Other power sources not used |
-| JP2 | OFF | Normal mode |
-| CN5 | Not connected | External SWD can disturb on-board debug |
-
-If the PC detects ST-LINK but OpenOCD reports `chipid: 0x000` or `unable to connect to the target`, check CN4 first.
-
-## LED Verification
-
-After flashing, the firmware uses the three user LEDs as a simple runtime stage indicator:
-
-| Board LED | Color | MCU pin | Firmware stage | Expected observation |
-| --- | --- | --- | --- | --- |
-| LED1 / LD1 | Green | PC7 | `TEST_STAGE_AUDIO_CAPTURE` | Main normal state while audio is being captured |
-| LED2 / LD2 | Blue | PB7 | `TEST_STAGE_MFCC_READY` | Briefly turns on when an MFCC window is ready |
-| LED3 / LD3 | Red | PA9 | `TEST_STAGE_UART_TX` | Briefly turns on while MFCC data is sent over UART |
-| LED3 / LD3 | Red | PA9 | `TEST_STAGE_FAULT` | Stays on if the firmware enters a fault stage |
-
-Normal behavior is: green mostly on, with occasional short blue and red activity when MFCC data is produced and transmitted.
-
-If the red LED stays on continuously, the firmware is likely in an error or fault path.
-
-## UART Verification
-
-The firmware initializes COM1 at `115200 8N1`.
-
-Expected startup message:
-
-```text
-I2S AUDIO+MFCC TEST INIT
+```sh
+openocd -f flash.cfg -c \
+  "program build/Debug/STM32_deploy.hex verify reset exit"
 ```
 
-During normal operation, UART output includes lines like:
+## 无麦克风串口实验
 
-```text
-AUDIO_FRAME,<count>,PEAK_MILLI=<value>
-MFCC READY,<count>
-MFCC_BEGIN,<count>,FRAMES=<audio_frame_count>,PEAK_MILLI=<value>,SCALE=1000
-MFCC_ROW,<count>,<row>,...
-MFCC_END,<count>
+安装 PC 客户端依赖：
+
+```sh
+python3 -m pip install -r tools/requirements-serial.txt
 ```
 
-## I2S Microphone GPIO
+查询板端实际加载的模型、形状、量化参数、哈希、arena 用量和标签：
 
-The current firmware captures I2S microphone data through `SAI1_Block_B` and converts it to 512-sample float audio frames for MFCC processing.
+```sh
+python3 tools/serial_model_client.py --port /dev/ttyACM0 info
+```
 
-| Signal | MCU pin | GPIO port/pin | Alternate function | Direction | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `I2S_SD` | PB5 | GPIOB pin 5 | `GPIO_AF13_SAI1` | Microphone data to MCU | `SAI1_SD_B` |
-| `I2S_SCK` | PB3 | GPIOB pin 3 | `GPIO_AF13_SAI1` | MCU clock output | `SAI1_SCK_B` |
-| `I2S_WS` | PA4 | GPIOA pin 4 | `GPIO_AF13_SAI1` | MCU word-select output | `SAI1_FS_B` |
+发送整段原始录音。WAV 必须是单声道、16 kHz、无压缩 PCM16，长度为整秒；
+切窗、所选特征前端、输入量化、逐窗推理和录音级平均分全部在 STM32 上完成：
 
-SAI/I2S settings used by the firmware:
+```sh
+python3 tools/serial_model_client.py --port /dev/ttyACM0 --timeout 20 \
+  audio-run \
+  --input /path/to/recording.wav \
+  --dump-feature /tmp/last_window_feature.npy
+```
 
-| Setting | Value |
+新的全模型测试集统一放在 `board_testset/`。硬性 WAV、标签、清单、数据独立性
+和样本排列要求见
+[`docs/BOARD_BENCHMARK_TESTSET.md`](docs/BOARD_BENCHMARK_TESTSET.md)。
+准备完成后先严格校验全部 WAV 和哈希：
+
+```sh
+python3 tools/run_board_benchmark.py validate-testset \
+  --testset board_testset
+```
+
+批量烧录并测试固件包中的全部模型：
+
+```sh
+python3 tools/run_board_benchmark.py run \
+  --testset board_testset \
+  --scope all \
+  --count 64 \
+  --port /dev/ttyACM0 \
+  --run-id all_models_64 \
+  --continue-on-error
+```
+
+相同参数增加 `--resume` 可跳过已完成模型。`--dry-run` 只验证数据、模型选择和
+预计耗时，不操作开发板。结果统一写入 `board_results/<run-id>/`。
+
+以下 `.npy` 接口只用于前端/推理回归。客户端接受 `[32,bins]`、`[32,bins,1]`、
+`[N,32,bins]` 或 `[N,32,bins,1]` 的 `.npy`：
+
+```sh
+python3 tools/serial_model_client.py --port /dev/ttyACM0 run \
+  --input /path/to/test_data.npy \
+  --index 0 \
+  --mode both \
+  --tflite "$MODEL_DIR/DS_CNN_Model.int8.tflite"
+```
+
+批量回归：
+
+```sh
+python3 tools/serial_model_client.py --port /dev/ttyACM0 sweep \
+  --input /path/to/test_data.npy \
+  --start 0 \
+  --count 100 \
+  --mode both \
+  --tflite "$MODEL_DIR/DS_CNN_Model.int8.tflite" \
+  --max-lsb-error 1
+```
+
+`f32` 模式发送训练端浮点特征，由 STM32 量化；`native` 模式由 PC 按板端上报的
+scale/zero-point 量化后直接发送 INT8。`both` 会分别走两条路径。提供 `--tflite`
+时，客户端用同一量化输入运行桌面解释器，统计预测不一致数、最大 INT8 LSB 误差
+以及板端最小/中位/最大推理耗时；超过阈值时返回非零退出码。
+
+建议实验顺序：
+
+1. `info`：确认 SHA-256、形状、激活、scale/zero-point 与所选导出一致；
+2. 单样本 `both`：确认 PC 量化与板端量化得到相同输出；
+3. 100 个样本 `sweep`：检查 TFLite 与 TFLM 数值一致性；
+4. 全测试集 `sweep`：记录预测一致率和延迟分布；
+5. 至少各测一个 MFCC、LogMel、PCEN，以及一个 softmax、一个 sigmoid 模型。
+
+LED 状态：
+
+| LED | 含义 |
 | --- | --- |
-| Peripheral | `SAI1_Block_B` |
-| Mode | Master receive |
-| Standard | `SAI_I2S_STANDARD` |
-| Data size | 24-bit protocol data |
-| Audio frequency | 16 kHz |
-| DMA | `DMA2_Channel1`, request `DMA_REQUEST_SAI1_B`, circular mode |
+| 绿灯 | 模型初始化及 metadata 校验成功 |
+| 红灯 | schema、内存、形状、类型或量化参数不匹配 |
+| 蓝灯 | 正在执行推理 |
 
-Important checks when `PEAK_MILLI=0`:
+## 串口二进制协议
 
-- Confirm the microphone or X-NUCLEO-CCA02M2 board has the correct 3.3 V power and ground.
-- Confirm the microphone data line is routed to `PB5 / SAI1_SD_B`.
-- Confirm `PB3 / SAI1_SCK_B` is routed to the microphone bit clock input.
-- Confirm `PA4 / SAI1_FS_B` is routed to the microphone word-select input.
-- Confirm the microphone output is I2S-compatible.
+COM1 为 `115200 8N1`。所有字段 little-endian，每包包含 20 字节头：
+
+```c
+uint32_t magic;          /* 0x31544D53，线上的字节为 "SMT1" */
+uint8_t  version;        /* 1 */
+uint8_t  command;
+uint16_t flags;          /* 当前必须为 0 */
+uint32_t sequence;
+uint32_t payload_length;
+uint32_t payload_crc32;  /* CRC-32/ISO-HDLC */
+```
+
+| 命令 | 值 | payload |
+| --- | ---: | --- |
+| `GET_INFO` | `0x01` | 空 |
+| `RUN_F32` | `0x02` | `input_elements` 个 little-endian float32 |
+| `RUN_NATIVE` | `0x03` | `input_elements` 个 int8 |
+| `AUDIO_BEGIN` | `0x10` | 采样率、样本数、PCM16 格式、整段 PCM CRC32 |
+| `AUDIO_CHUNK` | `0x11` | 连续样本偏移和 little-endian PCM16 |
+| `AUDIO_RUN` | `0x12` | 空；校验完整流并返回录音级结果 |
+| `AUDIO_GET_FEATURE` | `0x13` | 空；调试读取最后完整窗口的板端特征 |
+| `INFO` 响应 | `0x81` | 状态、张量、量化、哈希、标签、arena |
+| `RESULT` 响应 | `0x82` | 分类、周期、耗时、阈值 mask、分数、原始输出 |
+| `AUDIO_ACK` 响应 | `0x90` | 状态、累计样本数、已完成窗口数 |
+| `AUDIO_FEATURE` 响应 | `0x91` | 板端生成的最后窗口 float32 特征 |
+| `AUDIO_RESULT` 响应 | `0x92` | 录音级平均分及前端/推理分项耗时 |
+| `ERROR` 响应 | `0xFF` | 错误码和消息 |
+
+浮点输入量化公式：
+
+```text
+q = clip(round(x / input_scale) + input_zero_point, -128, 127)
+```
+
+softmax 输出取 argmax；sigmoid 输出除 argmax 外还按阈值生成
+`active_class_mask`，默认阈值为 0.5。
+
+## 麦克风前端后续工作
+
+`App/AudioFrontend` 已实现与 Model_train 对齐的 MFCC、LogMel、PCEN，串口原始
+录音链路可用于全部 57 个模型。`Core/Src/audio_capture.c` 与
+`Core/Src/mfcc.c` 仍作为历史麦克风代码保留，但不属于串口目标；旧 MFCC 使用
+1024 点 FFT、Hamming、预加重和近似 Mel 采样，不能接入当前模型。
+
+恢复实时麦克风时，应让新的采集目标只负责把连续 PCM16 送入
+`App/AudioFrontend` 的窗口接口，不复制或修改特征算法。这样串口实验与麦克风
+实验只有“PCM 来源”不同，后续板端处理完全共用。
+
+CubeMX 文件仍保留 SAI1 Block B 与 DMA 硬件配置，便于后续建立独立
+`App/Microphone` 目标；当前串口固件不会启动这些外设。

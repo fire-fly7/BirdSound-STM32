@@ -28,9 +28,10 @@ static inline float get_cpu_freq(void)
 uint32_t ModelTest_RunSingle(const float *input)
 {
     uint32_t start, end;
+    int32_t predicted_index;
 
     start = DWT->CYCCNT;
-    model_inference(input);
+    (void)model_inference(input, model_get_input_size(), &predicted_index);
     end = DWT->CYCCNT;
 
     uint32_t cycles = end - start;
@@ -44,13 +45,16 @@ model_perf_result_t ModelTest_RunAverage(const float *input,
 {
     model_perf_result_t result;
     uint64_t total_cycles = 0;
+    int32_t predicted_index;
 
     for (uint32_t i = 0; i < rounds; i++)
     {
         uint32_t start = DWT->CYCCNT;
 
         HAL_GPIO_WritePin(PERF_GPIO_PORT, PERF_GPIO_PIN, GPIO_PIN_SET);
-        model_inference(input);
+        (void)model_inference(input,
+                              model_get_input_size(),
+                              &predicted_index);
         HAL_GPIO_WritePin(PERF_GPIO_PORT, PERF_GPIO_PIN, GPIO_PIN_RESET);
 
         uint32_t end = DWT->CYCCNT;

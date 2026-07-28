@@ -5,6 +5,10 @@
 #include <stdbool.h>
 #include "mel_filterbank.h"
 
+/*
+ * Legacy MFCC experiment only. Its output is not compatible with the active
+ * LogMel model described by model_manifest.h and is not built by CMake.
+ */
 #define MFCC_SAMPLE_RATE   16000
 #define MFCC_FRAME_LEN     1024
 #define MFCC_FRAME_STEP    512

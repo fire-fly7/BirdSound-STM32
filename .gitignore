@@ -7,3 +7,7 @@ build/
 
 # CMake
 CMakeFiles/
+
+# Local board benchmark corpus and generated results
+/board_testset/
+/board_results/

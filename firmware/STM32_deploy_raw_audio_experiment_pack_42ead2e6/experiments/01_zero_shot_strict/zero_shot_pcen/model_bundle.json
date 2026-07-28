@@ -1,0 +1,49 @@
+{
+  "activation": "softmax",
+  "arena_bytes": 98304,
+  "feature": "PCEN",
+  "input_elements": 1280,
+  "input_scale": 0.012634358368813992,
+  "input_shape": [
+    -1,
+    32,
+    40,
+    1
+  ],
+  "input_zero_point": -128,
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "model_bytes": 49984,
+  "model_name": "zero_shot_pcen",
+  "operators": [
+    "ADD",
+    "CONV_2D",
+    "DEPTHWISE_CONV_2D",
+    "FULLY_CONNECTED",
+    "MAX_POOL_2D",
+    "MEAN",
+    "MUL",
+    "SOFTMAX"
+  ],
+  "output_scale": 0.00390625,
+  "output_shape": [
+    -1,
+    8
+  ],
+  "output_zero_point": -128,
+  "protocol_model_name": "zero_shot_pcen",
+  "schema_version": 1,
+  "sha256": "6a413e5182948f1ba99498616a71b609b896302734ca8e7c77341eba4f545c5c",
+  "source_commit": "42ead2e614e3f40afc7da29e660fc94609d10817",
+  "source_metadata": "Model_train/src/experiments/ZeroShot_strict_INT8_quantization_8class/models/zero_shot_pcen/DS_CNN_Model.int8_metadata.json",
+  "source_tflite": "Model_train/src/experiments/ZeroShot_strict_INT8_quantization_8class/models/zero_shot_pcen/DS_CNN_Model.int8.tflite",
+  "threshold": 0.5
+}

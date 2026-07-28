@@ -21,31 +21,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-
-
+#include "serial_model_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef enum
-{
-  TEST_STAGE_BOOT = 0,
-  TEST_STAGE_AUDIO_CAPTURE,
-  TEST_STAGE_MFCC_READY,
-  TEST_STAGE_UART_TX,
-  TEST_STAGE_FAULT
-} test_stage_t;
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-static float audio_512[AUDIO_FRAME_STEP];
-static float mfcc_32x13[MFCC_NUM_FRAMES * MFCC_NUM_COEFF];
-#define DEBUG_UART_TIMEOUT_MS 100U
-
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -56,154 +40,27 @@ static float mfcc_32x13[MFCC_NUM_FRAMES * MFCC_NUM_COEFF];
 /* Private variables ---------------------------------------------------------*/
 
 COM_InitTypeDef BspCOMInit;
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 DMA_HandleTypeDef hdma_dma_generator0;
 SAI_HandleTypeDef hsai_BlockB1;
 DMA_HandleTypeDef hdma_sai1_b;
+#endif
 /* USER CODE BEGIN PV */
-static test_stage_t g_test_stage = TEST_STAGE_BOOT;
-static uint32_t audio_frame_count = 0;
-static uint32_t mfcc_capture_count = 0;
-static uint32_t last_frame_peak_milli = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 static void MX_DMA_Init(void);
-static void MX_ICACHE_Init(void);
 static void MX_SAI1_Init(void);
+#endif
+static void MX_ICACHE_Init(void);
 /* USER CODE BEGIN PFP */
-static void Debug_Print(const char *message);
-static void SetTestStage(test_stage_t stage);
-static uint32_t ComputeFramePeakMilli(const float *samples, uint32_t sample_count);
-static int32_t FloatToMilli(float value);
-static void TransmitMfccSnapshot(void);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-static void Debug_Print(const char *message)
-{
-  HAL_UART_Transmit(&hcom_uart[COM1],
-                    (uint8_t *)message,
-                    (uint16_t)strlen(message),
-                    DEBUG_UART_TIMEOUT_MS);
-}
-
-static void SetTestStage(test_stage_t stage)
-{
-  g_test_stage = stage;
-
-  BSP_LED_Off(LED_GREEN);
-  BSP_LED_Off(LED_BLUE);
-  BSP_LED_Off(LED_RED);
-
-  switch (stage)
-  {
-    case TEST_STAGE_AUDIO_CAPTURE:
-      BSP_LED_On(LED_GREEN);
-      break;
-
-    case TEST_STAGE_MFCC_READY:
-      BSP_LED_On(LED_BLUE);
-      break;
-
-    case TEST_STAGE_UART_TX:
-      BSP_LED_On(LED_RED);
-      break;
-
-    case TEST_STAGE_FAULT:
-      BSP_LED_On(LED_RED);
-      break;
-
-    case TEST_STAGE_BOOT:
-    default:
-      break;
-  }
-}
-
-static uint32_t ComputeFramePeakMilli(const float *samples, uint32_t sample_count)
-{
-  float peak = 0.0f;
-
-  for (uint32_t i = 0; i < sample_count; i++)
-  {
-    float value = samples[i];
-
-    if (value < 0.0f)
-    {
-      value = -value;
-    }
-
-    if (value > peak)
-    {
-      peak = value;
-    }
-  }
-
-  return (uint32_t)(peak * 1000.0f);
-}
-
-static int32_t FloatToMilli(float value)
-{
-  if (value >= 0.0f)
-  {
-    return (int32_t)(value * 1000.0f + 0.5f);
-  }
-
-  return (int32_t)(value * 1000.0f - 0.5f);
-}
-
-static void TransmitMfccSnapshot(void)
-{
-  char line[256];
-
-  snprintf(line,
-           sizeof(line),
-           "MFCC_BEGIN,%lu,FRAMES=%lu,PEAK_MILLI=%lu,SCALE=1000\r\n",
-           (unsigned long)mfcc_capture_count,
-           (unsigned long)audio_frame_count,
-           (unsigned long)last_frame_peak_milli);
-  Debug_Print(line);
-
-  for (uint32_t row = 0; row < MFCC_NUM_FRAMES; row++)
-  {
-    int length = snprintf(line,
-                          sizeof(line),
-                          "MFCC_ROW,%lu,%lu",
-                          (unsigned long)mfcc_capture_count,
-                          (unsigned long)row);
-
-    for (uint32_t col = 0; col < MFCC_NUM_COEFF; col++)
-    {
-      int32_t value_milli =
-          FloatToMilli(mfcc_32x13[row * MFCC_NUM_COEFF + col]);
-
-      length += snprintf(line + length,
-                         sizeof(line) - (size_t)length,
-                         ",%ld",
-                         (long)value_milli);
-    }
-
-    length += snprintf(line + length,
-                       sizeof(line) - (size_t)length,
-                       "\r\n");
-
-    HAL_UART_Transmit(&hcom_uart[COM1],
-                      (uint8_t *)line,
-                      (uint16_t)length,
-                      DEBUG_UART_TIMEOUT_MS);
-  }
-
-  snprintf(line,
-           sizeof(line),
-           "MFCC_END,%lu\r\n",
-           (unsigned long)mfcc_capture_count);
-  Debug_Print(line);
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -235,9 +92,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_ICACHE_Init();
-  MX_SAI1_Init();
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
@@ -247,7 +102,7 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
+  /* Initialize COM1 port (115200, 8 data bits, 1 stop bit, no parity) */
   BspCOMInit.BaudRate   = 115200;
   BspCOMInit.WordLength = COM_WORDLENGTH_8B;
   BspCOMInit.StopBits   = COM_STOPBITS_1;
@@ -259,59 +114,14 @@ int main(void)
   }
 
   /* USER CODE BEGIN 2 */
-  Audio_Init();
-  MFCC_Init();
-  Audio_Start();
-  audio_frame_count = 0;
-  mfcc_capture_count = 0;
-  last_frame_peak_milli = 0;
-  SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
-  Debug_Print("I2S AUDIO+MFCC TEST INIT\r\n");
+  SerialModelApp_Run(&hcom_uart[COM1]);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    if(Audio_FrameReady())
-    {
-        char msg[96];
-
-        Audio_GetFrame(audio_512);
-        Audio_ClearFlag();
-        audio_frame_count++;
-        last_frame_peak_milli = ComputeFramePeakMilli(audio_512, AUDIO_FRAME_STEP);
-
-        MFCC_Stream_PushSamples(audio_512);
-        SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
-
-        if ((audio_frame_count % 16U) == 0U)
-        {
-          snprintf(msg,
-                   sizeof(msg),
-                   "AUDIO_FRAME,%lu,PEAK_MILLI=%lu\r\n",
-                   (unsigned long)audio_frame_count,
-                   (unsigned long)last_frame_peak_milli);
-          Debug_Print(msg);
-        }
-
-        if (MFCC_Stream_Ready())
-        {
-          MFCC_Stream_Get(mfcc_32x13);
-          mfcc_capture_count++;
-
-          SetTestStage(TEST_STAGE_MFCC_READY);
-          snprintf(msg,
-                   sizeof(msg),
-                   "MFCC READY,%lu\r\n",
-                   (unsigned long)mfcc_capture_count);
-          Debug_Print(msg);
-
-          SetTestStage(TEST_STAGE_UART_TX);
-          TransmitMfccSnapshot();
-          SetTestStage(TEST_STAGE_AUDIO_CAPTURE);
-        }
-    }
+    __WFI();
     /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
   }
@@ -373,6 +183,7 @@ void SystemClock_Config(void)
   * @param None
   * @retval None
   */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 static void MX_SAI1_Init(void)
 {
 
@@ -413,6 +224,7 @@ static void MX_SAI1_Init(void)
   /* USER CODE END SAI1_Init 2 */
 
 }
+#endif
 
 /**
   * @brief ICACHE Initialization Function
@@ -451,6 +263,7 @@ static void MX_ICACHE_Init(void)
   * Configure DMA for memory to memory transfers
   *   hdma_dma_generator0
   */
+#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
 static void MX_DMA_Init(void)
 {
 
@@ -495,6 +308,7 @@ static void MX_DMA_Init(void)
   HAL_NVIC_EnableIRQ(SAI1_IRQn);
 
 }
+#endif
 
 /**
   * @brief GPIO Initialization Function

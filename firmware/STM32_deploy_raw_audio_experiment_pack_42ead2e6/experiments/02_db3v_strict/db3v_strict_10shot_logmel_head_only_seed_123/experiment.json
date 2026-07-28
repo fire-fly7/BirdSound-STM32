@@ -1,0 +1,94 @@
+{
+  "activation": "softmax",
+  "build_type": "Release",
+  "chain_id": "db3v_strict_10shot_logmel_head_only_seed_123",
+  "core_experiment": true,
+  "core_reason": "DB3V推荐链路 seed 123",
+  "feature": "LOGMEL",
+  "files": {
+    "STM32_deploy.bin": {
+      "bytes": 172600,
+      "sha256": "d1c77c8ae20095ef0ea81eb8b89fa09a007e36b172ad1104ec5bad29fc784765"
+    },
+    "STM32_deploy.hex": {
+      "bytes": 485552,
+      "sha256": "ee793e5f871d36a909b3abac76130bc1f7062cd9971474ba3a577b8992ccf50c"
+    },
+    "model.tflite": {
+      "bytes": 49984,
+      "sha256": "1312940053da119d59c423a9fe6dfefef3265739c83b427f6bd8a94be7e7765c"
+    },
+    "model_bundle.json": {
+      "bytes": 1383,
+      "sha256": "b6a2bc67a7a0323e49bbe76f1bdd70cffe7c0b10e28b5be878f90e9f1390c0b7"
+    },
+    "model_metadata.json": {
+      "bytes": 1340,
+      "sha256": "9616ad3fef5abfd7130f87e86b45748f42eb363cf517774098b6380faf35a9d6"
+    }
+  },
+  "firmware_source_commit": "0d94f6774a570fe0a712bf47b78dd22dced06699",
+  "firmware_source_dirty": true,
+  "group": "02_db3v_strict",
+  "input_scale": 0.3137255012989044,
+  "input_shape": [
+    -1,
+    32,
+    40,
+    1
+  ],
+  "input_zero_point": 127,
+  "metrics": {
+    "birdset_fp32_singleton_macro_f1": 0.1083762108890893,
+    "birdset_fp32_top1": 0.2139063783191897,
+    "birdset_fp32_top3": 0.5065425677525321,
+    "birdset_input_saturation": 0.0,
+    "birdset_int8_singleton_macro_f1": 0.15270540749940992,
+    "birdset_int8_top1": 0.29329318368464274,
+    "birdset_int8_top3": 0.6061319463454695,
+    "birdset_scope": "common_20shot_heldout_197_recordings",
+    "birdset_singleton_macro_f1_delta": 0.044329196610320615,
+    "birdset_top1_delta": 0.07938680536545303,
+    "birdset_top3_delta": 0.09958937859293737,
+    "chain_id": "db3v_strict_10shot_logmel_head_only_seed_123",
+    "db3v_accuracy_delta": 0.003824654310091158,
+    "db3v_balanced_accuracy_delta": -0.012625620631830925,
+    "db3v_fp32_accuracy": 0.7258017063842307,
+    "db3v_fp32_balanced_accuracy": 0.7164412834672986,
+    "db3v_fp32_macro_f1": 0.6781246229919403,
+    "db3v_fp32_top3": 0.9227223693243111,
+    "db3v_input_saturation": 0.0,
+    "db3v_int8_accuracy": 0.7296263606943219,
+    "db3v_int8_balanced_accuracy": 0.7038156628354677,
+    "db3v_int8_macro_f1": 0.6801144450121167,
+    "db3v_int8_top3": 0.9147788565264293,
+    "db3v_macro_f1_delta": 0.0019898220201763905,
+    "db3v_macro_f1_retention": 1.0029343013845997,
+    "db3v_scope": "common_20shot_heldout_10197_recordings",
+    "db3v_top3_delta": -0.007943512797881747,
+    "family": "db3v_strict_fewshot",
+    "feature": "LogMel",
+    "floating_point_tensor_count": 0,
+    "input_scale": 0.3137255012989044,
+    "input_zero_point": 127,
+    "output_activation": "softmax",
+    "output_scale": 0.00390625,
+    "output_zero_point": -128,
+    "policy": "head_only",
+    "requested_shots": 10,
+    "seed": 123,
+    "strict_int8": true,
+    "tflite_bytes": 49984,
+    "xeno_fp32_macro_f1": 0.6054608272397483,
+    "xeno_input_saturation": 0.0,
+    "xeno_int8_macro_f1": 0.5713789533920771,
+    "xeno_macro_f1_delta": -0.03408187384767114,
+    "xeno_macro_f1_retention": 0.9437092008032164
+  },
+  "model_sha256": "1312940053da119d59c423a9fe6dfefef3265739c83b427f6bd8a94be7e7765c",
+  "model_train_commit": "42ead2e614e3f40afc7da29e660fc94609d10817",
+  "output_scale": 0.00390625,
+  "output_zero_point": -128,
+  "schema_version": 1,
+  "source_group": "DB3V_strict_INT8_quantization_8class"
+}

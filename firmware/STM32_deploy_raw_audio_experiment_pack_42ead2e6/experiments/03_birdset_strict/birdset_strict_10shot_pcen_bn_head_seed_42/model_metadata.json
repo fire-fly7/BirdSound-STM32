@@ -1,0 +1,52 @@
+{
+  "strict_int8": true,
+  "input": {
+    "dtype": "int8",
+    "shape_signature": [
+      -1,
+      32,
+      40,
+      1
+    ],
+    "scale": 0.012540994212031364,
+    "zero_point": -128
+  },
+  "output": {
+    "dtype": "int8",
+    "shape_signature": [
+      -1,
+      8
+    ],
+    "scale": 0.00390625,
+    "zero_point": -128
+  },
+  "tensor_dtype_counts": {
+    "int32": 8,
+    "int8": 32
+  },
+  "floating_point_tensor_count": 0,
+  "operators": [
+    "ADD",
+    "CONV_2D",
+    "DELEGATE",
+    "DEPTHWISE_CONV_2D",
+    "FULLY_CONNECTED",
+    "LOGISTIC",
+    "MAX_POOL_2D",
+    "MEAN",
+    "MUL"
+  ],
+  "forbidden_conversion_operators": [],
+  "model_path": "src\\experiments\\BirdSet_fewshot_ablation_multiseed_8class\\PCEN\\10shot\\bn_head\\seed_42\\DS_CNN_Model.h5",
+  "tflite_path": "src\\experiments\\BirdSet_strict_INT8_quantization_8class\\models\\birdset_strict_10shot_pcen_bn_head_seed_42\\DS_CNN_Model.int8.tflite",
+  "tflite_bytes": 49968,
+  "keras_h5_bytes": 201912,
+  "output_activation": "sigmoid",
+  "representative_samples_requested": 256,
+  "representative_sources": [
+    "src\\dataset_processing\\output\\PCEN_dataset_A_8class\\train_data.npy",
+    "src\\dataset_processing\\output\\PCEN_BirdSet_external_split_10shot_8class\\support\\support_data.npy"
+  ],
+  "conversion_seconds": 1.287192399991909,
+  "tensorflow_version": "2.19.0"
+}

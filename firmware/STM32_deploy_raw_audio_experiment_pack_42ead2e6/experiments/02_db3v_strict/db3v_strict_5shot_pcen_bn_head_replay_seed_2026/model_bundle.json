@@ -1,0 +1,49 @@
+{
+  "activation": "softmax",
+  "arena_bytes": 98304,
+  "feature": "PCEN",
+  "input_elements": 1280,
+  "input_scale": 0.012543842196464539,
+  "input_shape": [
+    -1,
+    32,
+    40,
+    1
+  ],
+  "input_zero_point": -128,
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "model_bytes": 49984,
+  "model_name": "db3v_strict_5shot_pcen_bn_head_replay_seed_2026",
+  "operators": [
+    "ADD",
+    "CONV_2D",
+    "DEPTHWISE_CONV_2D",
+    "FULLY_CONNECTED",
+    "MAX_POOL_2D",
+    "MEAN",
+    "MUL",
+    "SOFTMAX"
+  ],
+  "output_scale": 0.00390625,
+  "output_shape": [
+    -1,
+    8
+  ],
+  "output_zero_point": -128,
+  "protocol_model_name": "db3v_strict_5shot_pcen_bn_head_replay_seed_2026",
+  "schema_version": 1,
+  "sha256": "b4f26f748d3b05775360e7a27569d167e2884ac82c6a01978f6d885db569f5a3",
+  "source_commit": "42ead2e614e3f40afc7da29e660fc94609d10817",
+  "source_metadata": "Model_train/src/experiments/DB3V_strict_INT8_quantization_8class/models/db3v_strict_5shot_pcen_bn_head_replay_seed_2026/DS_CNN_Model.int8_metadata.json",
+  "source_tflite": "Model_train/src/experiments/DB3V_strict_INT8_quantization_8class/models/db3v_strict_5shot_pcen_bn_head_replay_seed_2026/DS_CNN_Model.int8.tflite",
+  "threshold": 0.5
+}

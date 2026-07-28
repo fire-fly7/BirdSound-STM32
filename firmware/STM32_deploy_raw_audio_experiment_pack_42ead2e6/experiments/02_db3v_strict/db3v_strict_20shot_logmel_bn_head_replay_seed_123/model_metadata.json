@@ -1,0 +1,52 @@
+{
+  "strict_int8": true,
+  "input": {
+    "dtype": "int8",
+    "shape_signature": [
+      -1,
+      32,
+      40,
+      1
+    ],
+    "scale": 0.3137255012989044,
+    "zero_point": 127
+  },
+  "output": {
+    "dtype": "int8",
+    "shape_signature": [
+      -1,
+      8
+    ],
+    "scale": 0.00390625,
+    "zero_point": -128
+  },
+  "tensor_dtype_counts": {
+    "int32": 8,
+    "int8": 32
+  },
+  "floating_point_tensor_count": 0,
+  "operators": [
+    "ADD",
+    "CONV_2D",
+    "DELEGATE",
+    "DEPTHWISE_CONV_2D",
+    "FULLY_CONNECTED",
+    "MAX_POOL_2D",
+    "MEAN",
+    "MUL",
+    "SOFTMAX"
+  ],
+  "forbidden_conversion_operators": [],
+  "model_path": "src\\experiments\\DB3V_fewshot_ablation_multiseed_8class\\LogMel\\20shot\\bn_head_replay\\seed_123\\DS_CNN_Model.h5",
+  "tflite_path": "src\\experiments\\DB3V_strict_INT8_quantization_8class\\models\\db3v_strict_20shot_logmel_bn_head_replay_seed_123\\DS_CNN_Model.int8.tflite",
+  "tflite_bytes": 49984,
+  "keras_h5_bytes": 201912,
+  "output_activation": "softmax",
+  "representative_samples_requested": 256,
+  "representative_sources": [
+    "src\\dataset_processing\\output\\LogMel_dataset_A_8class\\train_data.npy",
+    "src\\dataset_processing\\output\\LogMel_DB3V_external_split_20shot_8class\\support_data.npy"
+  ],
+  "conversion_seconds": 1.136165500007337,
+  "tensorflow_version": "2.19.0"
+}
