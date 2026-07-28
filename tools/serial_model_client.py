@@ -134,6 +134,11 @@ def parse_args() -> argparse.Namespace:
         default=1,
         help="maximum permitted int8 output difference from desktop TFLite",
     )
+    smoke.add_argument(
+        "--output",
+        type=Path,
+        help="optional CSV containing every generated-tensor parity result",
+    )
 
     sweep = subparsers.add_parser("sweep", help="run a range of tensors and summarize parity")
     add_input_arguments(sweep)
@@ -528,16 +533,31 @@ def create_reference_interpreter(tflite_path: Path, info: ModelInfo) -> Any:
         import tensorflow as tf
 
         interpreter_class = tf.lite.Interpreter
+        resolver_type = tf.lite.experimental.OpResolverType.BUILTIN_REF
     except ImportError:
         try:
-            from tflite_runtime.interpreter import Interpreter
+            from tflite_runtime.interpreter import Interpreter, OpResolverType
 
             interpreter_class = Interpreter
-        except ImportError as exc:
-            raise ProtocolError(
-                "TFLite parity needs tensorflow or tflite-runtime installed"
-            ) from exc
-    interpreter = interpreter_class(model_path=str(tflite_path))
+            resolver_type = OpResolverType.BUILTIN_REF
+        except ImportError:
+            try:
+                from ai_edge_litert.interpreter import Interpreter, OpResolverType
+
+                interpreter_class = Interpreter
+                resolver_type = OpResolverType.BUILTIN_REF
+            except ImportError as exc:
+                raise ProtocolError(
+                    "TFLite parity needs tensorflow, tflite-runtime, or "
+                    "ai-edge-litert installed"
+                ) from exc
+    # Compare TFLM reference kernels with the desktop reference resolver.
+    # AUTO may silently enable XNNPACK, whose optimized quantized kernels are
+    # valid but can differ by many output LSBs and even change near-tie argmax.
+    interpreter = interpreter_class(
+        model_path=str(tflite_path),
+        experimental_op_resolver_type=resolver_type,
+    )
     interpreter.allocate_tensors()
     return interpreter
 

@@ -171,6 +171,10 @@ python3 tools/run_board_benchmark.py run \
   --continue-on-error
 ```
 
+每个模型默认先运行 5 个确定性张量的 `f32`/`native` 两种串口输入，共 10 次
+LiteRT `BUILTIN_REF` 与 TFLite Micro 输出对拍；随后才发送原始 WAV。
+`--skip-parity` 只用于临时诊断，不应用于可提交的证据运行。
+
 中断后使用完全相同的参数并增加 `--resume`，已完成模型不会重新烧录或测试：
 
 ```sh
@@ -199,6 +203,8 @@ board_results/<run-id>/
     ├── flash.log
     ├── info.log
     ├── info.json
+    ├── parity.log
+    ├── parity_predictions.csv
     ├── audio_sweep.log
     ├── predictions.csv
     └── status.json
@@ -207,4 +213,60 @@ board_results/<run-id>/
 `predictions.csv` 保存 8 类浮点分数、量化 INT8 原始输出、预测类别、板端前端与
 推理耗时。sigmoid 模型额外保存 `active_class_mask`；为了与 softmax 模型使用
 同一单标签指标，`summary.csv` 的 accuracy、balanced accuracy 和 macro-F1
-统一基于 argmax 计算。
+统一基于 argmax 计算。`info.json` 是每个固件实际模型哈希、Arena 配置及占用的
+原始记录；`parity_predictions.csv` 保存逐张量、逐输入模式的板端与桌面 INT8
+输出。`summary.csv` 聚合烧录/运行状态、Arena、对拍、指标和延迟。
+
+完整运行后执行机器核验并生成所有原始证据文件的 SHA-256：
+
+```sh
+python3 tools/verify_board_evidence.py \
+  --run board_results/all_models_64 \
+  --pack /path/to/unpacked-package \
+  --output board_results/all_models_64/evidence_verification.json \
+  --hashes-output board_results/all_models_64/artifact_hashes.csv
+```
+
+## 9. 仅源标签的链路冒烟
+
+未人工复核的历史数据只能使用显式的宽松策略，结果中的
+`scientific_metrics_valid` 固定为 `false`：
+
+```sh
+python3 tools/import_pc_wav_testset.py \
+  --pc-wav pc_wav_only \
+  --output pc_wav_only/board_manifest_source_label_8.csv \
+  --per-class 1
+
+python3 tools/run_board_benchmark.py run \
+  --testset pc_wav_only \
+  --manifest pc_wav_only/board_manifest_source_label_8.csv \
+  --annotation-policy source-label \
+  --scope all \
+  --count 8 \
+  --run-id all57_source_label_8 \
+  --continue-on-error
+```
+
+该模式可验证烧录、串口传输、板端前端、TFLM 对拍和结果文件接口，但其
+accuracy/macro-F1 只能作为带局限声明的初步值，不能替代第 4～6 节规定的最终
+严格测试集。
+
+## 10. 板端前端与训练端误差
+
+`audio-run --dump-feature` 返回整段录音最后一个完整一秒窗的板端浮点特征。比较时
+必须使用同一个源窗；例如 8 秒录音应对应训练数组中的第 8 窗（索引 7），不能误
+与索引 0 比较：
+
+```sh
+python3 tools/compare_frontend_features.py \
+  --board /tmp/recording_000_last_mfcc.npy \
+  --reference /path/to/mfcc/test_data.npy \
+  --reference-index 7 \
+  --info /path/to/zero_shot_mfcc/info.json \
+  --max-abs-limit 0.0002 \
+  --output /tmp/mfcc_frontend_comparison.json
+```
+
+输出同时记录两个 `.npy` 的 SHA-256、浮点 max/MAE/RMSE、板端上报的输入
+scale/zero-point，以及量化后最大 LSB 误差和不一致元素数。

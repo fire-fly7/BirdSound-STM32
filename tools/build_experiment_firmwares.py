@@ -20,9 +20,14 @@ from typing import Any
 TENSOR_ARENA_BYTES = 98_304
 
 GROUPS = (
-    ("01_zero_shot_strict", "INT8_quantization_8class", "zero_shot"),
-    ("02_db3v_strict", "DB3V_strict_INT8_quantization_8class", None),
-    ("03_birdset_strict", "BirdSet_strict_INT8_quantization_8class", None),
+    (
+        "01_zero_shot_strict",
+        "ZeroShot_strict_INT8_quantization_8class",
+        None,
+        3,
+    ),
+    ("02_db3v_strict", "DB3V_strict_INT8_quantization_8class", None, 27),
+    ("03_birdset_strict", "BirdSet_strict_INT8_quantization_8class", None, 27),
 )
 
 BUILD_INPUT_EXCLUDED_PREFIXES = ("docs/", "evidence/", "firmware/")
@@ -189,7 +194,7 @@ def load_experiments(model_train: Path) -> list[dict[str, Any]]:
     experiments_root = model_train / "src" / "experiments"
     experiments: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for package_group, source_group, family_filter in GROUPS:
+    for package_group, source_group, family_filter, expected_count in GROUPS:
         summary_path = experiments_root / source_group / "summary.csv"
         try:
             with summary_path.open(encoding="utf-8", newline="") as stream:
@@ -198,6 +203,11 @@ def load_experiments(model_train: Path) -> list[dict[str, Any]]:
             raise PackageError(f"cannot read {summary_path}: {exc}") from exc
         if family_filter is not None:
             rows = [row for row in rows if row.get("family") == family_filter]
+        if len(rows) != expected_count:
+            raise PackageError(
+                f"{source_group} contains {len(rows)} experiments, "
+                f"expected {expected_count}"
+            )
         summary_chains = {row.get("chain_id", "") for row in rows}
         exported_chains = {
             path.parent.name
@@ -459,6 +469,10 @@ python3 tools/run_board_benchmark.py run \\
   --run-id all_models_64 --continue-on-error
 ```
 
+批量脚本默认对每个模型先执行 5 个确定性张量、`f32`/`native` 两种串口模式的
+LiteRT `BUILTIN_REF` 与 TFLM 对拍，再发送原始 WAV；结果保存逐模型
+`parity_predictions.csv`、`predictions.csv`、`info.json` 和串口/烧录日志。
+
 三种特征前端均与 Model_train 定义绑定，固件根据自身 `feature` 自动选择。
 麦克风/SAI/DMA 采集不在此固件中，串口原始录音实验与麦克风硬件保持分离。
 
@@ -488,6 +502,10 @@ python3 tools/serial_model_client.py --port /dev/ttyACM0 sweep \\
 同一特征链路之间使用相同样本索引，再比较 `board_results.csv`。softmax 链路主要
 比较 `predicted_index`；sigmoid/BirdSet 链路还需比较 `active_class_mask`。跨特征
 比较必须由同一批原始音频分别生成 MFCC、LogMel、PCEN，不能直接复用一个 `.npy`。
+
+`audio-run --dump-feature` 返回最后一个一秒窗的板端浮点特征。使用
+`tools/compare_frontend_features.py` 与训练数组中的同一窗对齐后，可记录浮点误差、
+量化 LSB 误差及双方文件哈希。
 """
 
 
@@ -656,9 +674,12 @@ def main() -> int:
         shutil.copy2(source_dir / "flash.cfg", staging_dir / "flash.cfg")
         for name in (
             "build_experiment_firmwares.py",
+            "compare_frontend_features.py",
             "flash_experiment.py",
+            "import_pc_wav_testset.py",
             "run_board_benchmark.py",
             "serial_model_client.py",
+            "verify_board_evidence.py",
             "verify_firmware_release.py",
             "requirements-serial.txt",
         ):

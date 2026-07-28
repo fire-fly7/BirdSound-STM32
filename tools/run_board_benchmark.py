@@ -55,6 +55,7 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
+PARITY_MAX_LSB_ERROR = 2
 
 
 class BenchmarkError(RuntimeError):
@@ -121,6 +122,15 @@ def add_testset_arguments(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=0,
         help="selected rows after start/stride; 0 selects all remaining rows",
+    )
+    parser.add_argument(
+        "--annotation-policy",
+        choices=("strict", "source-label"),
+        default="strict",
+        help=(
+            "strict requires manual verification/no mixed species/leakage passed; "
+            "source-label permits transparent preliminary transport benchmarks"
+        ),
     )
 
 
@@ -218,6 +228,11 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="validate everything and print the plan without touching the board",
+    )
+    run.add_argument(
+        "--skip-parity",
+        action="store_true",
+        help="skip generated-tensor LiteRT/TFLM parity (not recommended for evidence runs)",
     )
     return parser.parse_args()
 
@@ -319,6 +334,7 @@ def validate_audio(
 def validate_testset(
     testset: Path,
     manifest: Path | None,
+    annotation_policy: str = "strict",
 ) -> tuple[dict[str, Any], list[dict[str, str]], tuple[str, ...], Path, Path]:
     root, manifest_path = resolve_manifest(testset, manifest)
     load_label_map(root)
@@ -388,18 +404,39 @@ def validate_testset(
             raise BenchmarkError(
                 f"manifest row {row_number}: split must be 'board_test'"
             )
-        if row["annotation_status"] != "verified":
-            raise BenchmarkError(
-                f"manifest row {row_number}: annotation_status must be 'verified'"
-            )
-        if row["mixed_species"] != "none":
-            raise BenchmarkError(
-                f"manifest row {row_number}: mixed_species must be 'none'"
-            )
-        if row["leakage_check"] != "passed":
-            raise BenchmarkError(
-                f"manifest row {row_number}: leakage_check must be 'passed'"
-            )
+        if annotation_policy == "strict":
+            if row["annotation_status"] != "verified":
+                raise BenchmarkError(
+                    f"manifest row {row_number}: annotation_status must be 'verified'"
+                )
+            if row["mixed_species"] != "none":
+                raise BenchmarkError(
+                    f"manifest row {row_number}: mixed_species must be 'none'"
+                )
+            if row["leakage_check"] != "passed":
+                raise BenchmarkError(
+                    f"manifest row {row_number}: leakage_check must be 'passed'"
+                )
+        else:
+            if row["annotation_status"] not in {
+                "verified",
+                "source_label",
+                "unreviewed",
+            }:
+                raise BenchmarkError(
+                    f"manifest row {row_number}: invalid source-label "
+                    f"annotation_status {row['annotation_status']!r}"
+                )
+            if row["mixed_species"] not in {"none", "unknown"}:
+                raise BenchmarkError(
+                    f"manifest row {row_number}: invalid mixed_species "
+                    f"{row['mixed_species']!r}"
+                )
+            if row["leakage_check"] not in {"passed", "unknown"}:
+                raise BenchmarkError(
+                    f"manifest row {row_number}: invalid leakage_check "
+                    f"{row['leakage_check']!r}"
+                )
         for hash_field in ("pcm_sha256", "wav_sha256"):
             if not SHA256_RE.fullmatch(row[hash_field]):
                 raise BenchmarkError(
@@ -451,6 +488,8 @@ def validate_testset(
     report = {
         "schema_version": 1,
         "valid": True,
+        "annotation_policy": annotation_policy,
+        "scientific_metrics_valid": annotation_policy == "strict",
         "testset": str(root),
         "manifest": str(manifest_path),
         "manifest_sha256": sha256_file(manifest_path),
@@ -713,6 +752,76 @@ def prediction_metrics(path: Path) -> dict[str, Any]:
     }
 
 
+def parity_metrics(path: Path) -> dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8", newline="") as stream:
+            rows = list(csv.DictReader(stream))
+    except OSError as exc:
+        raise BenchmarkError(f"cannot read parity predictions {path}: {exc}") from exc
+    if not rows:
+        raise BenchmarkError(f"parity predictions file is empty: {path}")
+    maximum = 0
+    prediction_mismatches = 0
+    by_sample: dict[int, dict[str, list[int]]] = {}
+    for number, row in enumerate(rows, start=2):
+        try:
+            sample_index = int(row["sample_index"])
+            mode = row["mode"]
+            board = [int(value) for value in json.loads(row["raw_output_int8"])]
+            reference = [
+                int(value) for value in json.loads(row["reference_raw_int8"])
+            ]
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise BenchmarkError(
+                f"invalid parity row {number} in {path}"
+            ) from exc
+        if mode not in {"f32", "native"} or len(board) != 8 or len(reference) != 8:
+            raise BenchmarkError(f"invalid parity payload at row {number} in {path}")
+        maximum = max(
+            maximum,
+            max(abs(actual - expected) for actual, expected in zip(board, reference)),
+        )
+        board_argmax = max(range(8), key=board.__getitem__)
+        reference_argmax = max(range(8), key=reference.__getitem__)
+        prediction_mismatches += int(board_argmax != reference_argmax)
+        by_sample.setdefault(sample_index, {})[mode] = board
+    cross_mode_maximum = 0
+    cross_mode_mismatches = 0
+    for sample_index, modes in by_sample.items():
+        if set(modes) != {"f32", "native"}:
+            raise BenchmarkError(
+                f"parity sample {sample_index} does not contain both wire modes"
+            )
+        f32_values = modes["f32"]
+        native_values = modes["native"]
+        cross_mode_maximum = max(
+            cross_mode_maximum,
+            max(
+                abs(f32_value - native_value)
+                for f32_value, native_value in zip(f32_values, native_values)
+            ),
+        )
+        cross_mode_mismatches += int(
+            max(range(8), key=f32_values.__getitem__)
+            != max(range(8), key=native_values.__getitem__)
+        )
+    return {
+        "generated_tensors": len(by_sample),
+        "reference_comparisons": len(rows),
+        "prediction_mismatches": prediction_mismatches,
+        "max_lsb_error": maximum,
+        "max_lsb_error_limit": PARITY_MAX_LSB_ERROR,
+        "f32_vs_native_prediction_mismatches": cross_mode_mismatches,
+        "f32_vs_native_max_lsb_error": cross_mode_maximum,
+        "passed": (
+            prediction_mismatches == 0
+            and maximum <= PARITY_MAX_LSB_ERROR
+            and cross_mode_mismatches == 0
+            and cross_mode_maximum == 0
+        ),
+    }
+
+
 SUMMARY_FIELDS = (
     "chain_id",
     "status",
@@ -727,6 +836,12 @@ SUMMARY_FIELDS = (
     "macro_f1",
     "frontend_elapsed_us_median",
     "inference_elapsed_us_median",
+    "tensor_arena_used",
+    "tensor_arena_size",
+    "parity_reference_comparisons",
+    "parity_prediction_mismatches",
+    "parity_max_lsb_error",
+    "parity_f32_vs_native_max_lsb_error",
     "error",
 )
 
@@ -749,6 +864,18 @@ def write_summary(
         metrics = status.get("metrics")
         if not isinstance(metrics, dict):
             metrics = {}
+        parity = metrics.get("parity")
+        if not isinstance(parity, dict):
+            parity = {}
+        info: dict[str, Any] = {}
+        info_path = status_path.parent / "info.json"
+        if info_path.is_file():
+            try:
+                value = json.loads(info_path.read_text(encoding="utf-8"))
+                if isinstance(value, dict):
+                    info = value
+            except (OSError, json.JSONDecodeError):
+                info = {}
         rows.append(
             {
                 "chain_id": model["chain_id"],
@@ -767,6 +894,18 @@ def write_summary(
                 ),
                 "inference_elapsed_us_median": metrics.get(
                     "inference_elapsed_us_median", ""
+                ),
+                "tensor_arena_used": info.get("arena_used", ""),
+                "tensor_arena_size": info.get("arena_bytes", ""),
+                "parity_reference_comparisons": parity.get(
+                    "reference_comparisons", ""
+                ),
+                "parity_prediction_mismatches": parity.get(
+                    "prediction_mismatches", ""
+                ),
+                "parity_max_lsb_error": parity.get("max_lsb_error", ""),
+                "parity_f32_vs_native_max_lsb_error": parity.get(
+                    "f32_vs_native_max_lsb_error", ""
                 ),
                 "error": status.get("error", ""),
             }
@@ -804,6 +943,8 @@ def normalized_run_config(
         "selection_sha256": sha256_json(selection_identity),
         "samples": len(selected_rows),
         "models": [model["chain_id"] for model in models],
+        "annotation_policy": args.annotation_policy,
+        "parity": not args.skip_parity,
         "selection": {
             "start": args.start,
             "stride": args.stride,
@@ -835,6 +976,9 @@ def print_dry_run(
                 "model_ids": [model["chain_id"] for model in models],
                 "samples_per_model": len(rows),
                 "board_runs": len(rows) * len(models),
+                "generated_tensor_parity_per_model": (
+                    0 if args.skip_parity else 10
+                ),
                 "estimated_hours": round((wire_seconds + compute_seconds) / 3600, 3),
                 "results": str((args.results / args.run_id).resolve()),
                 "no_flash": args.no_flash,
@@ -909,6 +1053,42 @@ def run_one_model(
         validate_board_info(info, model)
         write_json(model_dir / "info.json", info)
 
+        parity: dict[str, Any] | None = None
+        if not args.skip_parity:
+            tflite = firmware.parent / "model.tflite"
+            if not tflite.is_file():
+                raise BenchmarkError(f"desktop TFLite model does not exist: {tflite}")
+            parity_predictions = model_dir / "parity_predictions.csv"
+            parity_command = [
+                sys.executable,
+                str(serial_client),
+                "--port",
+                args.port,
+                "--baud",
+                str(args.baud),
+                "--timeout",
+                str(args.timeout),
+                "smoke",
+                "--mode",
+                "both",
+                "--tflite",
+                str(tflite),
+                "--max-lsb-error",
+                str(PARITY_MAX_LSB_ERROR),
+                "--output",
+                str(parity_predictions),
+            ]
+            return_code = run_logged(
+                parity_command, model_dir / "parity.log", f"{chain_id}:parity"
+            )
+            if return_code != 0:
+                raise BenchmarkError(
+                    f"LiteRT/TFLM parity failed with exit code {return_code}"
+                )
+            parity = parity_metrics(parity_predictions)
+            if not parity["passed"]:
+                raise BenchmarkError("LiteRT/TFLM parity metrics did not pass")
+
         predictions = model_dir / "predictions.csv"
         audio_command = [
             sys.executable,
@@ -937,6 +1117,7 @@ def run_one_model(
                 f"raw-audio sweep failed with exit code {return_code}"
             )
         metrics = prediction_metrics(predictions)
+        metrics["parity"] = parity
         status.update(
             {
                 "status": "complete",
@@ -966,7 +1147,7 @@ def execute_run(args: argparse.Namespace) -> int:
     if not RUN_ID_RE.fullmatch(args.run_id):
         raise BenchmarkError("--run-id may contain only letters, digits, dot, dash, underscore")
     report, rows, fieldnames, testset, manifest_path = validate_testset(
-        args.testset, args.manifest
+        args.testset, args.manifest, args.annotation_policy
     )
     selected_rows = select_rows(rows, args.start, args.stride, args.count)
     pack, models = select_models(args)
@@ -1053,7 +1234,9 @@ def main() -> int:
     args = parse_args()
     try:
         if args.action == "validate-testset":
-            report, rows, _, _, _ = validate_testset(args.testset, args.manifest)
+            report, rows, _, _, _ = validate_testset(
+                args.testset, args.manifest, args.annotation_policy
+            )
             selected = select_rows(rows, args.start, args.stride, args.count)
             report["selected_samples"] = len(selected)
             report["selection"] = {

@@ -2,7 +2,7 @@
 
 面向 `NUCLEO-L552ZE-Q / STM32L552ZE-Q` 的鸟声分类模型部署与板端对拍工程。
 训练端为 [fire-fly7/Model_train](https://github.com/fire-fly7/Model_train)，当前核对基线是
-提交 `fce2d285f2f8e6c3f22495e28a48734fef782a0c`。
+提交 `42ead2e614e3f40afc7da29e660fc94609d10817`。
 
 当前无麦克风实验的主链路为“原始 PCM16 录音 → 串口 → 板端切窗 → 板端
 MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只读取 WAV、
@@ -144,7 +144,7 @@ cmake -S . -B build/zero_shot_mfcc \
   -DCMAKE_BUILD_TYPE=Debug \
   -DSTM32_MODEL_TFLITE="$MODEL_DIR/DS_CNN_Model.int8.tflite" \
   -DSTM32_MODEL_LABEL_MAP="$MODEL_TRAIN/src/dataset_processing/label_map_8class.json" \
-  -DSTM32_MODEL_SOURCE_COMMIT=fce2d285f2f8e6c3f22495e28a48734fef782a0c
+  -DSTM32_MODEL_SOURCE_COMMIT=42ead2e614e3f40afc7da29e660fc94609d10817
 cmake --build build/zero_shot_mfcc -j
 ```
 
@@ -177,6 +177,10 @@ openocd -f flash.cfg -c \
 ```sh
 python3 -m pip install -r tools/requirements-serial.txt
 ```
+
+其中 LiteRT 桌面解释器固定使用 `BUILTIN_REF` resolver，与板端 TFLite Micro
+reference kernels 做数值对拍；不能把可能自动启用 XNNPACK 的 `AUTO` 输出当成
+逐 LSB 基准。
 
 查询板端实际加载的模型、形状、量化参数、哈希、arena 用量和标签：
 
@@ -217,7 +221,52 @@ python3 tools/run_board_benchmark.py run \
 ```
 
 相同参数增加 `--resume` 可跳过已完成模型。`--dry-run` 只验证数据、模型选择和
-预计耗时，不操作开发板。结果统一写入 `board_results/<run-id>/`。
+预计耗时，不操作开发板。每个模型在原始 WAV 测试前还会用 5 个确定性张量、两种
+串口输入模式执行共 10 次 LiteRT/TFLM 对拍；只有诊断时才应使用
+`--skip-parity`。结果统一写入 `board_results/<run-id>/`。
+
+全量完成后核验 57 个模型的烧录、info、对拍、预测和汇总一致性，并生成原始证据
+文件哈希表：
+
+```sh
+python3 tools/verify_board_evidence.py \
+  --run board_results/all_models_64 \
+  --pack /path/to/unpacked-package \
+  --output board_results/all_models_64/evidence_verification.json \
+  --hashes-output board_results/all_models_64/artifact_hashes.csv
+```
+
+如果只有尚未人工复核的 `pc_wav_only/send_manifest.csv`，可生成一个明确标记为
+“仅源标签、不能作为论文最终指标”的平衡链路冒烟清单：
+
+```sh
+python3 tools/import_pc_wav_testset.py \
+  --pc-wav pc_wav_only \
+  --output pc_wav_only/board_manifest_source_label_8.csv \
+  --per-class 1
+
+python3 tools/run_board_benchmark.py validate-testset \
+  --testset pc_wav_only \
+  --manifest pc_wav_only/board_manifest_source_label_8.csv \
+  --annotation-policy source-label
+```
+
+严格论文测试仍必须使用
+[`docs/BOARD_BENCHMARK_TESTSET.md`](docs/BOARD_BENCHMARK_TESTSET.md) 规定的人工
+复核、无混合目标种、通过数据泄漏审计的 `board_testset/`。
+
+对齐训练数组与板端返回的最后一个一秒窗后，可固化 MFCC/LogMel/PCEN 浮点误差
+及模型输入量化后的 LSB 误差：
+
+```sh
+python3 tools/compare_frontend_features.py \
+  --board /tmp/last_window_feature.npy \
+  --reference /path/to/test_data.npy \
+  --reference-index 7 \
+  --info /path/to/info.json \
+  --max-abs-limit 0.0002 \
+  --output /tmp/frontend_comparison.json
+```
 
 以下 `.npy` 接口只用于前端/推理回归。客户端接受 `[32,bins]`、`[32,bins,1]`、
 `[N,32,bins]` 或 `[N,32,bins,1]` 的 `.npy`：

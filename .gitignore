@@ -11,6 +11,10 @@ CMakeFiles/
 # Local board benchmark corpus and generated results
 /board_testset/
 /board_results/
+/pc_wav_only/
+/real_testset/
+__pycache__/
+*.py[cod]
 
 # Generated firmware release packages are published as GitHub Release assets.
 # Keeping them out of Git avoids circular "artifact commit builds itself"
