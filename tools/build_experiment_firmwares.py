@@ -140,7 +140,9 @@ def build_inputs_sha256(repo: Path) -> tuple[str, list[dict[str, str]]]:
 
 
 def checked_submodules(repo: Path) -> list[dict[str, str]]:
-    output = git_value(repo, "submodule", "status", "--recursive")
+    output = git_bytes(repo, "submodule", "status", "--recursive").decode(
+        "utf-8", errors="replace"
+    )
     submodules: list[dict[str, str]] = []
     for line in output.splitlines():
         if not line:
