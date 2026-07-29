@@ -60,6 +60,18 @@ set(STM32_MODEL_DATA_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/model_data.c")
 set(STM32_MODEL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc")
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" -c "import numpy"
+    RESULT_VARIABLE STM32_PYTHON_BUILD_DEPS_RESULT
+    OUTPUT_QUIET
+    ERROR_QUIET)
+if(NOT STM32_PYTHON_BUILD_DEPS_RESULT EQUAL 0)
+    message(FATAL_ERROR
+            "Python build dependencies are missing. Create/activate a virtual "
+            "environment, then run:\n"
+            "  python -m pip install -r "
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/requirements-build.txt")
+endif()
 
 # TFLite Micro keeps FlatBuffers, gemmlowp, and ruy outside its source tree.
 # Fetch the versions locked and checksum-verified by the pinned TFLM commit on
@@ -88,14 +100,62 @@ foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
     endif()
 endforeach()
 if(TFLM_DEPENDENCIES_MISSING)
-    find_program(MAKE_EXECUTABLE NAMES make gmake REQUIRED)
     message(STATUS "Fetching checksum-locked TFLite Micro dependencies")
-    execute_process(
-        COMMAND "${MAKE_EXECUTABLE}" -f
-                tensorflow/lite/micro/tools/make/Makefile
-                third_party_downloads
-        WORKING_DIRECTORY "${TFLM_ROOT}"
-        RESULT_VARIABLE TFLM_DOWNLOAD_RESULT)
+
+    # Do not invoke TFLM's top-level Makefile here. Parsing that Makefile also
+    # downloads unrelated example assets and imports NumPy, even though this
+    # firmware only needs these three header dependencies. Call the download
+    # helpers from the pinned submodule directly; NumPy remains an explicit,
+    # pinned dependency of this project's frontend table generator.
+    set(TFLM_MAKE_TOOLS
+        "${TFLM_ROOT}/tensorflow/lite/micro/tools/make")
+    file(MAKE_DIRECTORY "${TFLM_DOWNLOADS_DIR}")
+    if(NOT EXISTS
+       "${TFLM_DOWNLOADS_DIR}/flatbuffers/include/flatbuffers/flatbuffers.h")
+        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/flatbuffers")
+        execute_process(
+            COMMAND "${TFLM_MAKE_TOOLS}/flatbuffers_download.sh"
+                    "${TFLM_DOWNLOADS_DIR}" "${TFLM_ROOT}/"
+            WORKING_DIRECTORY "${TFLM_ROOT}"
+            RESULT_VARIABLE TFLM_FLATBUFFERS_RESULT)
+    else()
+        set(TFLM_FLATBUFFERS_RESULT 0)
+    endif()
+    if(NOT EXISTS "${TFLM_DOWNLOADS_DIR}/gemmlowp/fixedpoint/fixedpoint.h")
+        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/gemmlowp")
+        execute_process(
+            COMMAND "${TFLM_MAKE_TOOLS}/download_and_extract.sh"
+                    "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
+                    "7e8191b24853d75de2af87622ad293ba"
+                    "${TFLM_DOWNLOADS_DIR}/gemmlowp"
+            WORKING_DIRECTORY "${TFLM_ROOT}"
+            RESULT_VARIABLE TFLM_GEMMLOWP_RESULT)
+    else()
+        set(TFLM_GEMMLOWP_RESULT 0)
+    endif()
+    if(NOT EXISTS
+       "${TFLM_DOWNLOADS_DIR}/ruy/ruy/profiler/instrumentation.h")
+        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/ruy")
+        execute_process(
+            COMMAND "${TFLM_MAKE_TOOLS}/download_and_extract.sh"
+                    "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
+                    "abf7a91eb90d195f016ebe0be885bb6e"
+                    "${TFLM_DOWNLOADS_DIR}/ruy"
+            WORKING_DIRECTORY "${TFLM_ROOT}"
+            RESULT_VARIABLE TFLM_RUY_RESULT)
+    else()
+        set(TFLM_RUY_RESULT 0)
+    endif()
+
+    math(EXPR TFLM_DOWNLOAD_RESULT
+         "${TFLM_FLATBUFFERS_RESULT} + ${TFLM_GEMMLOWP_RESULT} + ${TFLM_RUY_RESULT}")
+    foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
+        if(NOT EXISTS "${TFLM_DEPENDENCY}")
+            message(FATAL_ERROR
+                    "TFLite Micro dependency bootstrap did not create "
+                    "${TFLM_DEPENDENCY}")
+        endif()
+    endforeach()
     if(NOT TFLM_DOWNLOAD_RESULT EQUAL 0)
         message(FATAL_ERROR
                 "TFLite Micro dependency bootstrap failed with "

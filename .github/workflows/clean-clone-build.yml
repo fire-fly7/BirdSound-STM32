@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out the exact source and submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -21,6 +21,14 @@ jobs:
         uses: carlosperate/arm-none-eabi-gcc-action@v1.12.3
         with:
           release: 14.2.Rel1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Python build dependencies
+        run: python3 -m pip install -r tools/requirements-build.txt
 
       - name: Configure from a clean clone
         run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=Release

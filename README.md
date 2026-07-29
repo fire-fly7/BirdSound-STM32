@@ -40,6 +40,9 @@ Arena/延迟原始记录。该批 8 条来源标签数据只作为完整链路�
 ```sh
 git clone --recurse-submodules https://github.com/fire-fly7/LED_TEST.git
 cd LED_TEST
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r tools/requirements-build.txt
 cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
 cmake --build build/release -j
 ```
