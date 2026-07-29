@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from build_experiment_firmwares import (
+    PARITY_REFERENCE,
     PackageError,
     build_inputs_sha256,
     checked_submodules,
@@ -78,6 +79,7 @@ def verify_experiments(pack: Path, provenance: dict[str, Any]) -> int:
             "firmware_source_dirty",
             "firmware_build_inputs_sha256",
             "model_train_commit",
+            "desktop_parity_reference",
             "submodules",
             "toolchain",
         )
@@ -101,6 +103,10 @@ def verify_experiments(pack: Path, provenance: dict[str, Any]) -> int:
         if experiment.get("firmware_source_dirty") is not False:
             raise VerificationError(
                 f"dirty firmware source in {entry.get('chain_id')}"
+            )
+        if experiment.get("desktop_parity_reference") != PARITY_REFERENCE:
+            raise VerificationError(
+                f"unpinned desktop parity runtime in {entry.get('chain_id')}"
             )
         for name, record in experiment.get("files", {}).items():
             path = experiment_path.parent / name

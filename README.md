@@ -178,9 +178,10 @@ openocd -f flash.cfg -c \
 python3 -m pip install -r tools/requirements-serial.txt
 ```
 
-其中 LiteRT 桌面解释器固定使用 `BUILTIN_REF` resolver，与板端 TFLite Micro
-reference kernels 做数值对拍；不能把可能自动启用 XNNPACK 的 `AUTO` 输出当成
-逐 LSB 基准。
+57 个模型的 metadata 均记录转换运行时为 TensorFlow 2.19.0，因此桌面对拍精确
+锁定 `tensorflow-cpu==2.19.0` 和 `BUILTIN_REF` resolver，与板端 TFLite Micro
+逐 LSB 比较。不能使用浮动版本的 LiteRT，也不能把会自动启用 XNNPACK 的 `AUTO`
+输出当成基准；量化参考内核会随运行时版本变化。
 
 查询板端实际加载的模型、形状、量化参数、哈希、arena 用量和标签：
 
@@ -222,8 +223,20 @@ python3 tools/run_board_benchmark.py run \
 
 相同参数增加 `--resume` 可跳过已完成模型。`--dry-run` 只验证数据、模型选择和
 预计耗时，不操作开发板。每个模型在原始 WAV 测试前还会用 5 个确定性张量、两种
-串口输入模式执行共 10 次 LiteRT/TFLM 对拍；只有诊断时才应使用
+串口输入模式执行共 10 次 TensorFlow 2.19.0/TFLM 对拍；只有诊断时才应使用
 `--skip-parity`。结果统一写入 `board_results/<run-id>/`。
+
+如果历史运行使用了未锁版本的桌面解释器，可重新烧录全部模型并只替换对拍记录，
+不重复发送原始 WAV：
+
+```sh
+python3 tools/run_board_benchmark.py refresh-parity \
+  --run-dir board_results/all_models_64 \
+  --pack /path/to/unpacked-package \
+  --scope all \
+  --port /dev/ttyACM0 \
+  --continue-on-error
+```
 
 全量完成后核验 57 个模型的烧录、info、对拍、预测和汇总一致性，并生成原始证据
 文件哈希表：

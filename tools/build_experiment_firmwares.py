@@ -18,6 +18,11 @@ from typing import Any
 
 
 TENSOR_ARENA_BYTES = 98_304
+PARITY_REFERENCE = {
+    "runtime": "tensorflow-cpu",
+    "version": "2.19.0",
+    "resolver": "BUILTIN_REF",
+}
 
 GROUPS = (
     (
@@ -237,6 +242,18 @@ def load_experiments(model_train: Path) -> list[dict[str, Any]]:
             metadata = model_dir / "DS_CNN_Model.int8_metadata.json"
             if not tflite.is_file() or not metadata.is_file():
                 raise PackageError(f"missing model export for {chain_id}: {model_dir}")
+            try:
+                metadata_value = json.loads(metadata.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise PackageError(
+                    f"cannot read model metadata for {chain_id}: {exc}"
+                ) from exc
+            if metadata_value.get("tensorflow_version") != PARITY_REFERENCE["version"]:
+                raise PackageError(
+                    f"{chain_id} tensorflow_version is "
+                    f"{metadata_value.get('tensorflow_version')!r}, expected "
+                    f"{PARITY_REFERENCE['version']!r}"
+                )
             experiments.append(
                 {
                     "chain_id": chain_id,
@@ -367,6 +384,7 @@ def package_one(
         "firmware_source_tree": firmware_tree,
         "firmware_source_dirty": False,
         "firmware_build_inputs_sha256": firmware_build_inputs,
+        "desktop_parity_reference": PARITY_REFERENCE,
         "submodules": submodules,
         "toolchain": toolchain,
         "build_type": "Release",
@@ -470,7 +488,8 @@ python3 tools/run_board_benchmark.py run \\
 ```
 
 批量脚本默认对每个模型先执行 5 个确定性张量、`f32`/`native` 两种串口模式的
-LiteRT `BUILTIN_REF` 与 TFLM 对拍，再发送原始 WAV；结果保存逐模型
+`tensorflow-cpu==2.19.0`、`BUILTIN_REF` 与 TFLM 逐 LSB 对拍，再发送原始 WAV；
+该版本与全部模型 metadata 的转换运行时一致。结果保存逐模型
 `parity_predictions.csv`、`predictions.csv`、`info.json` 和串口/烧录日志。
 
 三种特征前端均与 Model_train 定义绑定，固件根据自身 `feature` 自动选择。
@@ -664,6 +683,7 @@ def main() -> int:
             "firmware_build_inputs": build_input_records,
             "model_train_commit": model_commit,
             "model_train_dirty": False,
+            "desktop_parity_reference": PARITY_REFERENCE,
             "submodules": submodules,
             "toolchain": toolchain,
             "build_type": "Release",

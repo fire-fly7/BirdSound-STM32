@@ -172,7 +172,8 @@ python3 tools/run_board_benchmark.py run \
 ```
 
 每个模型默认先运行 5 个确定性张量的 `f32`/`native` 两种串口输入，共 10 次
-LiteRT `BUILTIN_REF` 与 TFLite Micro 输出对拍；随后才发送原始 WAV。
+`tensorflow-cpu==2.19.0`、`BUILTIN_REF` 与 TFLite Micro 的逐 LSB 对拍；随后
+才发送原始 WAV。该版本必须与全部模型 metadata 中的转换版本一致。
 `--skip-parity` 只用于临时诊断，不应用于可提交的证据运行。
 
 中断后使用完全相同的参数并增加 `--resume`，已完成模型不会重新烧录或测试：
@@ -186,6 +187,17 @@ python3 tools/run_board_benchmark.py run \
   --run-id all_models_64 \
   --continue-on-error \
   --resume
+```
+
+如果仅需用锁定的桌面运行时替换已有对拍证据，不重复原始 WAV：
+
+```sh
+python3 tools/run_board_benchmark.py refresh-parity \
+  --run-dir board_results/all_models_64 \
+  --pack /path/to/unpacked-package \
+  --scope all \
+  --port /dev/ttyACM0 \
+  --continue-on-error
 ```
 
 ## 8. 结果接口

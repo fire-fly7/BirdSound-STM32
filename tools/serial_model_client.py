@@ -12,6 +12,7 @@ import statistics
 import struct
 import sys
 import time
+import warnings
 import wave
 import zlib
 from pathlib import Path
@@ -50,6 +51,9 @@ AUDIO_FORMAT_PCM_S16_LE = 1
 
 FEATURE_NAMES = {1: "MFCC", 2: "LOGMEL", 3: "PCEN"}
 ACTIVATION_NAMES = {1: "softmax", 2: "sigmoid"}
+REFERENCE_RUNTIME = "tensorflow-cpu"
+REFERENCE_RUNTIME_VERSION = "2.19.0"
+REFERENCE_RESOLVER = "BUILTIN_REF"
 
 
 class ProtocolError(RuntimeError):
@@ -531,33 +535,29 @@ def create_reference_interpreter(tflite_path: Path, info: ModelInfo) -> Any:
         )
     try:
         import tensorflow as tf
-
-        interpreter_class = tf.lite.Interpreter
-        resolver_type = tf.lite.experimental.OpResolverType.BUILTIN_REF
-    except ImportError:
-        try:
-            from tflite_runtime.interpreter import Interpreter, OpResolverType
-
-            interpreter_class = Interpreter
-            resolver_type = OpResolverType.BUILTIN_REF
-        except ImportError:
-            try:
-                from ai_edge_litert.interpreter import Interpreter, OpResolverType
-
-                interpreter_class = Interpreter
-                resolver_type = OpResolverType.BUILTIN_REF
-            except ImportError as exc:
-                raise ProtocolError(
-                    "TFLite parity needs tensorflow, tflite-runtime, or "
-                    "ai-edge-litert installed"
-                ) from exc
-    # Compare TFLM reference kernels with the desktop reference resolver.
-    # AUTO may silently enable XNNPACK, whose optimized quantized kernels are
-    # valid but can differ by many output LSBs and even change near-tie argmax.
-    interpreter = interpreter_class(
-        model_path=str(tflite_path),
-        experimental_op_resolver_type=resolver_type,
-    )
+    except ImportError as exc:
+        raise ProtocolError(
+            f"TFLite parity requires {REFERENCE_RUNTIME}=="
+            f"{REFERENCE_RUNTIME_VERSION}"
+        ) from exc
+    if tf.__version__ != REFERENCE_RUNTIME_VERSION:
+        raise ProtocolError(
+            f"TFLite parity requires TensorFlow {REFERENCE_RUNTIME_VERSION}, "
+            f"found {tf.__version__}; quantized reference kernels are "
+            "version-sensitive"
+        )
+    # All 57 exports record tensorflow_version=2.19.0 in their metadata.
+    # AUTO enables XNNPACK, and even a newer LiteRT BUILTIN_REF can produce
+    # different quantized outputs. Pin both the conversion runtime version and
+    # its reference resolver for byte-exact TFLM comparisons.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        interpreter = tf.lite.Interpreter(
+            model_path=str(tflite_path),
+            experimental_op_resolver_type=(
+                tf.lite.experimental.OpResolverType.BUILTIN_REF
+            ),
+        )
     interpreter.allocate_tensors()
     return interpreter
 
@@ -1016,6 +1016,14 @@ def run_sweep(
                         if reference is not None
                         else ""
                     ),
+                    "reference_runtime": (
+                        f"{REFERENCE_RUNTIME}=={REFERENCE_RUNTIME_VERSION}"
+                        if reference is not None
+                        else ""
+                    ),
+                    "reference_resolver": (
+                        REFERENCE_RESOLVER if reference is not None else ""
+                    ),
                 }
             )
             if reference is not None:
@@ -1044,6 +1052,15 @@ def run_sweep(
     report: dict[str, Any] = {
         "range": [args.start, stop],
         "reference_checked": interpreter is not None,
+        "reference_runtime": (
+            {
+                "package": REFERENCE_RUNTIME,
+                "version": REFERENCE_RUNTIME_VERSION,
+                "resolver": REFERENCE_RESOLVER,
+            }
+            if interpreter is not None
+            else None
+        ),
         "modes": {},
     }
     for mode, stats in summary.items():

@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import re
+import shutil
 import statistics
 import struct
 import subprocess
@@ -55,7 +56,14 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
-PARITY_MAX_LSB_ERROR = 2
+PARITY_MAX_LSB_ERROR = 0
+PARITY_REFERENCE_RUNTIME = "tensorflow-cpu==2.19.0"
+PARITY_REFERENCE_RESOLVER = "BUILTIN_REF"
+PARITY_REFERENCE = {
+    "runtime": PARITY_REFERENCE_RUNTIME,
+    "resolver": PARITY_REFERENCE_RESOLVER,
+    "max_lsb_error": PARITY_MAX_LSB_ERROR,
+}
 
 
 class BenchmarkError(RuntimeError):
@@ -87,6 +95,16 @@ def write_json(path: Path, value: Any) -> None:
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def load_json_object(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise BenchmarkError(f"cannot read JSON object {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise BenchmarkError(f"JSON value is not an object: {path}")
+    return value
 
 
 def default_pack() -> Path:
@@ -233,6 +251,24 @@ def parse_args() -> argparse.Namespace:
         "--skip-parity",
         action="store_true",
         help="skip generated-tensor LiteRT/TFLM parity (not recommended for evidence runs)",
+    )
+
+    refresh = subparsers.add_parser(
+        "refresh-parity",
+        help="reflash models and replace parity records without repeating raw WAVs",
+    )
+    add_model_arguments(refresh)
+    refresh.add_argument("--run-dir", required=True, type=Path)
+    refresh.add_argument("--port", default="/dev/ttyACM0")
+    refresh.add_argument("--baud", type=int, default=115200)
+    refresh.add_argument("--timeout", type=float, default=12.0)
+    refresh.add_argument("--serial-wait", type=float, default=30.0)
+    refresh.add_argument("--openocd", default="openocd")
+    refresh.add_argument("--flash-config", type=Path)
+    refresh.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="record a failed parity refresh and continue with the next firmware",
     )
     return parser.parse_args()
 
@@ -771,12 +807,22 @@ def parity_metrics(path: Path) -> dict[str, Any]:
             reference = [
                 int(value) for value in json.loads(row["reference_raw_int8"])
             ]
+            reference_runtime = row["reference_runtime"]
+            reference_resolver = row["reference_resolver"]
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise BenchmarkError(
                 f"invalid parity row {number} in {path}"
             ) from exc
         if mode not in {"f32", "native"} or len(board) != 8 or len(reference) != 8:
             raise BenchmarkError(f"invalid parity payload at row {number} in {path}")
+        if (
+            reference_runtime != PARITY_REFERENCE_RUNTIME
+            or reference_resolver != PARITY_REFERENCE_RESOLVER
+        ):
+            raise BenchmarkError(
+                f"unpinned parity reference at row {number} in {path}: "
+                f"{reference_runtime!r}/{reference_resolver!r}"
+            )
         maximum = max(
             maximum,
             max(abs(actual - expected) for actual, expected in zip(board, reference)),
@@ -811,6 +857,8 @@ def parity_metrics(path: Path) -> dict[str, Any]:
         "prediction_mismatches": prediction_mismatches,
         "max_lsb_error": maximum,
         "max_lsb_error_limit": PARITY_MAX_LSB_ERROR,
+        "reference_runtime": PARITY_REFERENCE_RUNTIME,
+        "reference_resolver": PARITY_REFERENCE_RESOLVER,
         "f32_vs_native_prediction_mismatches": cross_mode_mismatches,
         "f32_vs_native_max_lsb_error": cross_mode_maximum,
         "passed": (
@@ -945,6 +993,7 @@ def normalized_run_config(
         "models": [model["chain_id"] for model in models],
         "annotation_policy": args.annotation_policy,
         "parity": not args.skip_parity,
+        "parity_reference": PARITY_REFERENCE,
         "selection": {
             "start": args.start,
             "stride": args.stride,
@@ -1139,6 +1188,167 @@ def run_one_model(
         return status
 
 
+def refresh_parity(args: argparse.Namespace) -> int:
+    if args.baud <= 0 or args.timeout <= 0 or args.serial_wait <= 0:
+        raise BenchmarkError(
+            "--baud, --timeout, and --serial-wait must be positive"
+        )
+    pack, selected_models = select_models(args)
+    _, all_models = load_models(pack)
+    run_dir = args.run_dir.resolve()
+    config = load_json_object(run_dir / "run_config.json")
+    if config.get("pack_index_sha256") != sha256_file(pack / "INDEX.csv"):
+        raise BenchmarkError("run and firmware package INDEX.csv do not match")
+    configured_models = config.get("models")
+    if not isinstance(configured_models, list):
+        raise BenchmarkError("run_config.json has no model list")
+    unexpected = [
+        model["chain_id"]
+        for model in selected_models
+        if model["chain_id"] not in configured_models
+    ]
+    if unexpected:
+        raise BenchmarkError(
+            f"selected models are not part of the evidence run: {unexpected}"
+        )
+
+    flash_script = SCRIPT_DIR / "flash_experiment.py"
+    serial_client = SCRIPT_DIR / "serial_model_client.py"
+    flash_config = (
+        args.flash_config.resolve()
+        if args.flash_config is not None
+        else pack / "flash.cfg"
+    )
+    failures = 0
+    for index, model in enumerate(selected_models, start=1):
+        chain_id = model["chain_id"]
+        print(
+            f"[{index}/{len(selected_models)}] refresh parity: {chain_id}",
+            flush=True,
+        )
+        model_dir = run_dir / "models" / chain_id
+        status_path = model_dir / "status.json"
+        if not status_path.is_file():
+            raise BenchmarkError(f"missing prior model status: {status_path}")
+        status = load_json_object(status_path)
+        for name in ("parity.log", "parity_predictions.csv"):
+            source = model_dir / name
+            archive = model_dir / f"{Path(name).stem}_unpinned_litert_2.1.6{Path(name).suffix}"
+            if source.is_file() and not archive.exists():
+                shutil.copy2(source, archive)
+        try:
+            firmware = pack / model["hex_path"]
+            return_code = run_logged(
+                [
+                    sys.executable,
+                    str(flash_script),
+                    str(firmware),
+                    "--config",
+                    str(flash_config),
+                    "--openocd",
+                    args.openocd,
+                ],
+                model_dir / "flash.log",
+                f"{chain_id}:flash",
+            )
+            if return_code != 0:
+                raise BenchmarkError(
+                    f"flashing failed with exit code {return_code}"
+                )
+            info = wait_for_board_info(
+                [
+                    sys.executable,
+                    str(serial_client),
+                    "--port",
+                    args.port,
+                    "--baud",
+                    str(args.baud),
+                    "--timeout",
+                    str(args.timeout),
+                    "info",
+                ],
+                args.serial_wait,
+                args.timeout,
+                model_dir / "info.log",
+            )
+            validate_board_info(info, model)
+            write_json(model_dir / "info.json", info)
+            parity_predictions = model_dir / "parity_predictions.csv"
+            return_code = run_logged(
+                [
+                    sys.executable,
+                    str(serial_client),
+                    "--port",
+                    args.port,
+                    "--baud",
+                    str(args.baud),
+                    "--timeout",
+                    str(args.timeout),
+                    "smoke",
+                    "--mode",
+                    "both",
+                    "--tflite",
+                    str(firmware.parent / "model.tflite"),
+                    "--max-lsb-error",
+                    str(PARITY_MAX_LSB_ERROR),
+                    "--output",
+                    str(parity_predictions),
+                ],
+                model_dir / "parity.log",
+                f"{chain_id}:parity",
+            )
+            if return_code != 0:
+                raise BenchmarkError(
+                    f"pinned TensorFlow/TFLM parity failed with exit code "
+                    f"{return_code}"
+                )
+            parity = parity_metrics(parity_predictions)
+            if not parity["passed"]:
+                raise BenchmarkError("pinned parity metrics did not pass")
+            refresh = {
+                "status": "complete",
+                "completed_at": utc_now(),
+                "parity": parity,
+            }
+            if status.get("status") == "complete":
+                metrics = status.get("metrics")
+                if not isinstance(metrics, dict):
+                    raise BenchmarkError(
+                        f"{chain_id}: complete status has no metrics"
+                    )
+                metrics["parity"] = parity
+                status["metrics"] = metrics
+            status["parity_refresh"] = refresh
+            write_json(status_path, status)
+        except (BenchmarkError, OSError, subprocess.SubprocessError) as exc:
+            failures += 1
+            status["parity_refresh"] = {
+                "status": "failed",
+                "completed_at": utc_now(),
+                "error": str(exc),
+            }
+            write_json(status_path, status)
+            print(f"[{chain_id}] PARITY REFRESH FAILED: {exc}", file=sys.stderr)
+            if not args.continue_on_error:
+                break
+        write_summary(run_dir, all_models)
+    write_summary(run_dir, all_models)
+    if (
+        failures == 0
+        and set(configured_models)
+        == {model["chain_id"] for model in selected_models}
+    ):
+        config_path = run_dir / "run_config.json"
+        archive_path = run_dir / "run_config_before_parity_refresh.json"
+        if config.get("parity_reference") != PARITY_REFERENCE:
+            if not archive_path.exists():
+                shutil.copy2(config_path, archive_path)
+            config["parity_reference"] = PARITY_REFERENCE
+            write_json(config_path, config)
+    print(f"refreshed parity results: {run_dir}")
+    return 1 if failures else 0
+
+
 def execute_run(args: argparse.Namespace) -> int:
     if args.baud <= 0 or args.timeout <= 0:
         raise BenchmarkError("--baud and --timeout must be positive")
@@ -1262,6 +1472,8 @@ def main() -> int:
                     )
             print(f"models: {len(models)}", file=sys.stderr)
             return 0
+        if args.action == "refresh-parity":
+            return refresh_parity(args)
         return execute_run(args)
     except (BenchmarkError, OSError) as exc:
         print(f"board benchmark error: {exc}", file=sys.stderr)

@@ -15,6 +15,10 @@ from typing import Any
 
 from run_board_benchmark import (
     BenchmarkError,
+    PARITY_MAX_LSB_ERROR,
+    PARITY_REFERENCE,
+    PARITY_REFERENCE_RESOLVER,
+    PARITY_REFERENCE_RUNTIME,
     parity_metrics,
     prediction_metrics,
 )
@@ -138,6 +142,8 @@ def main() -> int:
             raise EvidenceError("run_config pack index SHA-256 does not match the pack")
         if not config.get("parity"):
             raise EvidenceError("evidence run disabled LiteRT/TFLM parity")
+        if config.get("parity_reference") != PARITY_REFERENCE:
+            raise EvidenceError("run_config parity reference is not exactly pinned")
         samples = int(config.get("samples", 0))
         if samples <= 0:
             raise EvidenceError("run_config samples must be positive")
@@ -304,11 +310,12 @@ def main() -> int:
                 "failed": 0,
             },
             "parity": {
-                "reference_resolver": "BUILTIN_REF",
+                "reference_runtime": PARITY_REFERENCE_RUNTIME,
+                "reference_resolver": PARITY_REFERENCE_RESOLVER,
                 "comparisons": total_parity_comparisons,
                 "prediction_mismatches": total_parity_mismatches,
                 "max_lsb_error": max(parity_lsb),
-                "max_lsb_error_limit": 2,
+                "max_lsb_error_limit": PARITY_MAX_LSB_ERROR,
             },
             "raw_audio": {
                 "predictions": total_predictions,
