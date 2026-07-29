@@ -1,0 +1,126 @@
+{
+  "chain_id": "birdset_strict_20shot_logmel_head_only_seed_42",
+  "completed_at": "2026-07-28T18:41:48+00:00",
+  "metrics": {
+    "accuracy": 0.25,
+    "balanced_accuracy": 0.25,
+    "confusion_matrix": [
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ]
+    ],
+    "correct": 2,
+    "frontend_elapsed_us_median": 67490.5,
+    "inference_elapsed_us_median": 2112349.5,
+    "macro_f1": 0.16666666666666666,
+    "parity": {
+      "f32_vs_native_max_lsb_error": 0,
+      "f32_vs_native_prediction_mismatches": 0,
+      "generated_tensors": 5,
+      "max_lsb_error": 0,
+      "max_lsb_error_limit": 0,
+      "passed": true,
+      "prediction_mismatches": 0,
+      "reference_comparisons": 10,
+      "reference_resolver": "BUILTIN_REF",
+      "reference_runtime": "tensorflow-cpu==2.19.0"
+    },
+    "samples": 8
+  },
+  "model_sha256": "d3567c29e17b553117ac24e78ee2bb2b8bb15a44fb1835048d0ef4487950c3f1",
+  "parity_refresh": {
+    "completed_at": "2026-07-28T19:22:18+00:00",
+    "parity": {
+      "f32_vs_native_max_lsb_error": 0,
+      "f32_vs_native_prediction_mismatches": 0,
+      "generated_tensors": 5,
+      "max_lsb_error": 0,
+      "max_lsb_error_limit": 0,
+      "passed": true,
+      "prediction_mismatches": 0,
+      "reference_comparisons": 10,
+      "reference_resolver": "BUILTIN_REF",
+      "reference_runtime": "tensorflow-cpu==2.19.0"
+    },
+    "status": "complete"
+  },
+  "started_at": "2026-07-28T18:40:38+00:00",
+  "status": "complete"
+}

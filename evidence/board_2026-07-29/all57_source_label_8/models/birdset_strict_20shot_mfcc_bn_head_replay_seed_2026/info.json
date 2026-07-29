@@ -1,0 +1,37 @@
+{
+  "activation": "sigmoid",
+  "activation_id": 2,
+  "arena_bytes": 98304,
+  "arena_used": 27284,
+  "feature": "MFCC",
+  "feature_id": 1,
+  "input_dims": [
+    1,
+    32,
+    13,
+    1
+  ],
+  "input_elements": 416,
+  "input_scale": 4.760210990905762,
+  "input_type": 9,
+  "input_zero_point": 90,
+  "label_count": 8,
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "model_bytes": 49968,
+  "model_name": "birdset_strict_20shot_mfcc_bn__cf3ba3be4ed0",
+  "model_sha256": "cf3ba3be4ed073254efe87aba27d7a6dd218f4df84736067a2746c1f5a4314b5",
+  "model_status": 0,
+  "output_count": 8,
+  "output_scale": 0.00390625,
+  "output_type": 9,
+  "output_zero_point": -128
+}

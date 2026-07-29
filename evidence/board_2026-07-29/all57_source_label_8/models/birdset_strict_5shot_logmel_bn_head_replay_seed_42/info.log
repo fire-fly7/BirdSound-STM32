@@ -1,0 +1,40 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 info
+exit=0
+{
+  "model_status": 0,
+  "feature_id": 2,
+  "activation_id": 2,
+  "input_type": 9,
+  "output_type": 9,
+  "input_dims": [
+    1,
+    32,
+    40,
+    1
+  ],
+  "output_count": 8,
+  "label_count": 8,
+  "input_elements": 1280,
+  "model_bytes": 49968,
+  "arena_bytes": 98304,
+  "arena_used": 79124,
+  "input_scale": 0.3137255012989044,
+  "input_zero_point": 127,
+  "output_scale": 0.00390625,
+  "output_zero_point": -128,
+  "model_name": "birdset_strict_5shot_logmel_bn_b7af982e0759",
+  "model_sha256": "b7af982e075978ae508db601e93d88e00cebf32212059cd7bc1e33a278240e3f",
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "feature": "LOGMEL",
+  "activation": "sigmoid"
+}
+

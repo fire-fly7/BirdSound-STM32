@@ -1,0 +1,35 @@
+{
+  "input_wav": "pc_wav_only/audio/Agelaius_phoeniceus/pkt_000000_db3v_r1_548216_c000_s00.wav",
+  "pipeline": "raw PCM16 -> board segmentation -> board PCEN -> board int8 inference",
+  "audio_samples": 16000,
+  "windows": 1,
+  "predicted_index": 3,
+  "predicted_label": "Corvus_brachyrhynchos",
+  "scores": [
+    0.12109375,
+    0.12109375,
+    0.0078125,
+    0.62890625,
+    0.08984375,
+    0.0234375,
+    0.0078125,
+    0.0
+  ],
+  "raw_output_int8": [
+    -97,
+    -97,
+    -126,
+    33,
+    -105,
+    -122,
+    -126,
+    -128
+  ],
+  "frontend_elapsed_us": 252206,
+  "inference_elapsed_us": 2106253,
+  "total_compute_elapsed_us": 2358459,
+  "frontend_cycles": 27742684,
+  "inference_cycles": 231687855,
+  "total_compute_cycles": 259430539,
+  "dump_feature": "/tmp/frontend-evidence-e084/zero_shot_pcen/board_feature.npy"
+}

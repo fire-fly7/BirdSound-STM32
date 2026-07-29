@@ -1,0 +1,35 @@
+{
+  "input_wav": "pc_wav_only/audio/Agelaius_phoeniceus/pkt_000000_db3v_r1_548216_c000_s00.wav",
+  "pipeline": "raw PCM16 -> board segmentation -> board MFCC -> board int8 inference",
+  "audio_samples": 16000,
+  "windows": 1,
+  "predicted_index": 0,
+  "predicted_label": "Agelaius_phoeniceus",
+  "scores": [
+    0.7109375,
+    0.0625,
+    0.07421875,
+    0.0078125,
+    0.0625,
+    0.015625,
+    0.0078125,
+    0.0625
+  ],
+  "raw_output_int8": [
+    54,
+    -112,
+    -109,
+    -126,
+    -112,
+    -124,
+    -126,
+    -112
+  ],
+  "frontend_elapsed_us": 80373,
+  "inference_elapsed_us": 422905,
+  "total_compute_elapsed_us": 503279,
+  "frontend_cycles": 8841099,
+  "inference_cycles": 46519654,
+  "total_compute_cycles": 55360753,
+  "dump_feature": "/tmp/frontend-evidence-e084/zero_shot_mfcc/board_feature.npy"
+}

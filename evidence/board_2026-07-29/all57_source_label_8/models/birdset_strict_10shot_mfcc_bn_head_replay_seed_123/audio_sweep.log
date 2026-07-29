@@ -1,0 +1,28 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 audio-sweep --manifest /tmp/board-evidence-d36dd04/all57_source_label_8/selected_manifest.csv --root /home/cy/code/program/LED_TEST/pc_wav_only --chunk-samples 2048 --output /tmp/board-evidence-d36dd04/all57_source_label_8/models/birdset_strict_10shot_mfcc_bn_head_replay_seed_123/predictions.csv
+[1/8] row 0 pkt_000000_db3v_r1_548216_c000_s00.wav: 0 Agelaius_phoeniceus
+[2/8] row 1 pkt_000320_db3v_r1_474134_c001_s00.wav: 1 Cardinalis_cardinalis
+[3/8] row 2 pkt_000640_db3v_r1_482568_c005_s00.wav: 7 Turdus_migratorius
+[4/8] row 3 pkt_000960_db3v_r1_279723_c000_s00.wav: 4 Setophaga_aestiva
+[5/8] row 4 pkt_001280_db3v_r1_188420_c002_s00.wav: 7 Turdus_migratorius
+[6/8] row 5 pkt_001600_db3v_r1_193127_c000_s00.wav: 1 Cardinalis_cardinalis
+[7/8] row 6 pkt_001920_db3v_r1_385206_c002_s00.wav: 1 Cardinalis_cardinalis
+[8/8] row 7 pkt_002240_db3v_r1_160114_c015_s00.wav: 0 Agelaius_phoeniceus
+{
+  "manifest_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "recordings": 8,
+  "labelled_recordings": 8,
+  "correct_recordings": 2,
+  "accuracy": 0.25,
+  "frontend_elapsed_us_median": 82696.0,
+  "inference_elapsed_us_median": 422787.0
+}
+wrote per-recording results: /tmp/board-evidence-d36dd04/all57_source_label_8/models/birdset_strict_10shot_mfcc_bn_head_replay_seed_123/predictions.csv

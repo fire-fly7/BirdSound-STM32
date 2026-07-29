@@ -1,0 +1,84 @@
+{
+  "activations": {
+    "sigmoid": 27,
+    "softmax": 30
+  },
+  "arena_used_bytes": {
+    "configured": 98304,
+    "max": 79172,
+    "median": 79124,
+    "min": 27284
+  },
+  "checked_evidence_files": 461,
+  "features": {
+    "LOGMEL": 19,
+    "MFCC": 19,
+    "PCEN": 19
+  },
+  "firmware_provenance": {
+    "firmware_build_inputs_sha256": "e04d48c9cc804a03ba57de2ee0142ce40cb95bfcf6b3d61c47f3140999f935e2",
+    "firmware_source_commit": "d36dd04abc8e367a4a586c2436f1636ece9689b7",
+    "firmware_source_dirty": false,
+    "firmware_source_tree": "295ef9001a3d668becc97495087b191779dc94e6",
+    "model_train_commit": "fce2d285f2f8e6c3f22495e28a48734fef782a0c",
+    "model_train_dirty": false,
+    "submodules": [
+      {
+        "commit": "bbf70db4993618bcabc01cf2f02cd9eb089d5dca",
+        "path": "Drivers/tflite-micro"
+      }
+    ],
+    "toolchain": {
+      "arm_none_eabi_gcc": "arm-none-eabi-gcc (xPack GNU Arm Embedded GCC x86_64) 14.2.1 20241119",
+      "cmake": "cmake version 3.28.3",
+      "python": "3.12.3"
+    }
+  },
+  "flash": {
+    "attempted": 57,
+    "failed": 0,
+    "verified_ok": 57
+  },
+  "groups": {
+    "01_zero_shot_strict": 3,
+    "02_db3v_strict": 27,
+    "03_birdset_strict": 27
+  },
+  "latency_us_median_per_model": {
+    "frontend_max": 254790.5,
+    "frontend_median": 81717.5,
+    "frontend_min": 66792.0,
+    "inference_max": 2112712.5,
+    "inference_median": 2106394.0,
+    "inference_min": 422787.0
+  },
+  "model_status_counts": {
+    "complete": 57
+  },
+  "models": 57,
+  "parity": {
+    "comparisons": 570,
+    "max_lsb_error": 0,
+    "max_lsb_error_limit": 0,
+    "prediction_mismatches": 0,
+    "reference_resolver": "BUILTIN_REF",
+    "reference_runtime": "tensorflow-cpu==2.19.0"
+  },
+  "passed": true,
+  "raw_audio": {
+    "accuracy_max": 0.5,
+    "accuracy_median": 0.25,
+    "accuracy_min": 0.125,
+    "macro_f1_max": 0.4375,
+    "macro_f1_median": 0.16666666666666666,
+    "macro_f1_min": 0.027777777777777776,
+    "predictions": 456
+  },
+  "schema_version": 1,
+  "testset": {
+    "annotation_policy": "source-label",
+    "manifest_sha256": "d75eaa99dc686d573d68b229a0e31858abdd81be7d74fe52b4d42de1f57755ed",
+    "samples_per_model": 8,
+    "scientific_metrics_valid": false
+  }
+}

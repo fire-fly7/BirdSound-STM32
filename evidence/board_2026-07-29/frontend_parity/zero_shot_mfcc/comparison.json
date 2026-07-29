@@ -1,0 +1,40 @@
+{
+  "alignment": {
+    "board_dump_semantics": "final one-second window returned by AUDIO_GET_FEATURE",
+    "reference_index": 0
+  },
+  "board": {
+    "dtype": "float32",
+    "path": "/tmp/frontend-evidence-e084/zero_shot_mfcc/board_feature.npy",
+    "sha256": "4545426b8858dcf6576b76aaac51b0c42842e411472f899ff5127657fa7a7570"
+  },
+  "created_at": "2026-07-29T04:32:16+00:00",
+  "elements": 416,
+  "feature": "MFCC",
+  "float_error": {
+    "max_abs": 0.000152587890625,
+    "max_abs_limit": 0.0002,
+    "mean_abs": 1.2727597585091224e-05,
+    "mean_signed": -1.150828141432542e-06,
+    "passed": true,
+    "rmse": 2.4122239081756102e-05
+  },
+  "input_quantization": {
+    "max_lsb_error": 0,
+    "mismatched_elements": 0,
+    "passed": true,
+    "scale": 4.34705114364624,
+    "zero_point": 73
+  },
+  "passed": true,
+  "reference": {
+    "dtype": "float32",
+    "path": "/home/cy/code/program/LED_TEST/real_testset/features/mfcc/test_data.npy",
+    "sha256": "308f29e62a43e61e371b7dcb75ef57c438e778b34e55e8a9c899ddbf93a516a7"
+  },
+  "schema_version": 1,
+  "shape": [
+    32,
+    13
+  ]
+}

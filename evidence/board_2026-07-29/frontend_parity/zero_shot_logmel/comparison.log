@@ -1,0 +1,40 @@
+{
+  "alignment": {
+    "board_dump_semantics": "final one-second window returned by AUDIO_GET_FEATURE",
+    "reference_index": 0
+  },
+  "board": {
+    "dtype": "float32",
+    "path": "/tmp/frontend-evidence-e084/zero_shot_logmel/board_feature.npy",
+    "sha256": "6581a71e95abc54eb876dc6c7ccfee38716478e8e0c0e45e959c569456bbff6d"
+  },
+  "created_at": "2026-07-29T04:32:26+00:00",
+  "elements": 1280,
+  "feature": "LOGMEL",
+  "float_error": {
+    "max_abs": 7.62939453125e-06,
+    "max_abs_limit": 1e-05,
+    "mean_abs": 5.096197128295899e-07,
+    "mean_signed": -1.4603137969970704e-07,
+    "passed": true,
+    "rmse": 1.6976340407293223e-06
+  },
+  "input_quantization": {
+    "max_lsb_error": 0,
+    "mismatched_elements": 0,
+    "passed": true,
+    "scale": 0.3137255012989044,
+    "zero_point": 127
+  },
+  "passed": true,
+  "reference": {
+    "dtype": "float32",
+    "path": "/home/cy/code/program/LED_TEST/real_testset/features/logmel/test_data.npy",
+    "sha256": "594a69b16591e34920721a5c7bbf7e225b56bf78dfb9260c251e382a923d0b69"
+  },
+  "schema_version": 1,
+  "shape": [
+    32,
+    40
+  ]
+}

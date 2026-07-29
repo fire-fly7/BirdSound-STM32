@@ -1,0 +1,40 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 info
+exit=0
+{
+  "model_status": 0,
+  "feature_id": 3,
+  "activation_id": 2,
+  "input_type": 9,
+  "output_type": 9,
+  "input_dims": [
+    1,
+    32,
+    40,
+    1
+  ],
+  "output_count": 8,
+  "label_count": 8,
+  "input_elements": 1280,
+  "model_bytes": 49968,
+  "arena_bytes": 98304,
+  "arena_used": 79124,
+  "input_scale": 0.012540994212031364,
+  "input_zero_point": -128,
+  "output_scale": 0.00390625,
+  "output_zero_point": -128,
+  "model_name": "birdset_strict_5shot_pcen_bn_head_seed_42",
+  "model_sha256": "e54d5cea60801568b49a4a5ef6dea1fe5599545bff8d55931b5ef58351fa7b71",
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "feature": "PCEN",
+  "activation": "sigmoid"
+}
+

@@ -1,0 +1,35 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/flash_experiment.py /tmp/STM32_deploy_raw_audio_experiment_pack_fce2d285_d36dd04/experiments/01_zero_shot_strict/zero_shot_logmel/STM32_deploy.hex --config /tmp/STM32_deploy_raw_audio_experiment_pack_fce2d285_d36dd04/flash.cfg --openocd openocd
+Open On-Chip Debugger 0.12.0
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Warn : The selected adapter does not support debugging this device in secure mode
+Info : clock speed 500 kHz
+Info : STLINK V2J34M25 (API v2) VID:PID 0483:374B
+Info : Target voltage: 3.264822
+Info : [stm32l5x.cpu] Cortex-M33 r0p2 processor detected
+Info : [stm32l5x.cpu] target has 8 breakpoints, 4 watchpoints
+Info : starting gdb server for stm32l5x.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+CPU in Non-Secure state
+[stm32l5x.cpu] halted due to debug-request, current mode: Thread 
+xPSR: 0xf9000000 pc: 0x08000f3c msp: 0x20030000
+** Programming Started **
+Info : device idcode = 0x20016472 (STM32L55/L56xx - Rev 'unknown' : 0x2001)
+Info : TZEN = 0 : TrustZone disabled by option bytes
+Info : RDP level 0 (0xAA)
+Info : flash size = 512 KiB
+Info : flash mode : dual-bank
+Info : Padding image section 0 at 0x080114e8 with 8 bytes
+Warn : Adding extra erase range, 0x0802a218 .. 0x0802a7ff
+** Programming Finished **
+** Verify Started **
+** Verified OK **
+** Resetting Target **
+shutdown command invoked
+model: zero_shot_logmel
+feature: LOGMEL
+firmware SHA-256 verified: STM32_deploy.hex
+command: openocd -f /tmp/STM32_deploy_raw_audio_experiment_pack_fce2d285_d36dd04/flash.cfg -c program {/tmp/STM32_deploy_raw_audio_experiment_pack_fce2d285_d36dd04/experiments/01_zero_shot_strict/zero_shot_logmel/STM32_deploy.hex} verify reset exit

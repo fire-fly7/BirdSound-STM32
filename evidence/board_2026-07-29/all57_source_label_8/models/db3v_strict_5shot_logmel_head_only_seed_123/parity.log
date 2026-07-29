@@ -1,0 +1,40 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 smoke --mode both --tflite /tmp/STM32_deploy_raw_audio_experiment_pack_fce2d285_d36dd04/experiments/02_db3v_strict/db3v_strict_5shot_logmel_head_only_seed_123/model.tflite --max-lsb-error 0 --output /tmp/board-evidence-d36dd04/all57_source_label_8/models/db3v_strict_5shot_logmel_head_only_seed_123/parity_predictions.csv
+{
+  "range": [
+    0,
+    5
+  ],
+  "reference_checked": true,
+  "reference_runtime": {
+    "package": "tensorflow-cpu",
+    "version": "2.19.0",
+    "resolver": "BUILTIN_REF"
+  },
+  "modes": {
+    "f32": {
+      "samples": 5,
+      "prediction_mismatches": 0,
+      "max_lsb_error": 0,
+      "elapsed_us_min": 2112482,
+      "elapsed_us_median": 2112558,
+      "elapsed_us_max": 2112669,
+      "passed": true
+    },
+    "native": {
+      "samples": 5,
+      "prediction_mismatches": 0,
+      "max_lsb_error": 0,
+      "elapsed_us_min": 2111711,
+      "elapsed_us_median": 2111845,
+      "elapsed_us_max": 2111902,
+      "passed": true
+    }
+  },
+  "f32_vs_native": {
+    "samples": 5,
+    "prediction_mismatches": 0,
+    "max_lsb_error": 0,
+    "passed": true
+  }
+}
+wrote per-sample results: /tmp/board-evidence-d36dd04/all57_source_label_8/models/db3v_strict_5shot_logmel_head_only_seed_123/parity_predictions.csv

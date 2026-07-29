@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-29T04:33:32Z",
+  "board": {
+    "serial_port": "/dev/ttyACM0",
+    "usb_vendor": "STMicroelectronics",
+    "usb_product": "STM32_STLink",
+    "usb_vid_pid": "0483:374b",
+    "stlink_serial": "0668FF363355373043133655",
+    "stlink_firmware": "V2J34M25",
+    "target": "STM32L55/L56xx Cortex-M33",
+    "target_voltage_v": 3.266403,
+    "trustzone_enabled": false,
+    "readout_protection": "level 0",
+    "flash_kib": 512
+  },
+  "tools": {
+    "openocd": "Open On-Chip Debugger 0.12.0",
+    "arm_none_eabi_gcc": "arm-none-eabi-gcc (xPack GNU Arm Embedded GCC x86_64) 14.2.1 20241119",
+    "cmake": "cmake version 3.28.3",
+    "python": "Python 3.12.3",
+    "desktop_parity_runtime": "tensorflow-cpu==2.19.0",
+    "desktop_parity_resolver": "BUILTIN_REF"
+  },
+  "source": {
+    "udev_devpath": "/devices/pci0000:00/0000:00:14.0/usb1/1-2/1-2:1.2/tty/ttyACM0",
+    "openocd_logs": "all57_source_label_8/models/*/flash.log"
+  }
+}

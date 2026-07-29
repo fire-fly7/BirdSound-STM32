@@ -1,0 +1,35 @@
+{
+  "input_wav": "pc_wav_only/audio/Agelaius_phoeniceus/pkt_000000_db3v_r1_548216_c000_s00.wav",
+  "pipeline": "raw PCM16 -> board segmentation -> board LOGMEL -> board int8 inference",
+  "audio_samples": 16000,
+  "windows": 1,
+  "predicted_index": 0,
+  "predicted_label": "Agelaius_phoeniceus",
+  "scores": [
+    0.23828125,
+    0.11328125,
+    0.05859375,
+    0.0546875,
+    0.171875,
+    0.125,
+    0.08203125,
+    0.15625
+  ],
+  "raw_output_int8": [
+    -67,
+    -99,
+    -113,
+    -114,
+    -84,
+    -96,
+    -107,
+    -88
+  ],
+  "frontend_elapsed_us": 66792,
+  "inference_elapsed_us": 2112658,
+  "total_compute_elapsed_us": 2179450,
+  "frontend_cycles": 7347180,
+  "inference_cycles": 232392406,
+  "total_compute_cycles": 239739586,
+  "dump_feature": "/tmp/frontend-evidence-e084/zero_shot_logmel/board_feature.npy"
+}

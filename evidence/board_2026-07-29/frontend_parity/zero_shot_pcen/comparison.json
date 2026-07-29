@@ -1,0 +1,40 @@
+{
+  "alignment": {
+    "board_dump_semantics": "final one-second window returned by AUDIO_GET_FEATURE",
+    "reference_index": 0
+  },
+  "board": {
+    "dtype": "float32",
+    "path": "/tmp/frontend-evidence-e084/zero_shot_pcen/board_feature.npy",
+    "sha256": "3ac415811a6a97b5909f761494a778f524305a4014af5cc82ec867bb83913251"
+  },
+  "created_at": "2026-07-29T04:32:38+00:00",
+  "elements": 1280,
+  "feature": "PCEN",
+  "float_error": {
+    "max_abs": 3.5762786865234375e-07,
+    "max_abs_limit": 1e-06,
+    "mean_abs": 4.925532266497612e-08,
+    "mean_signed": -1.8510036170482636e-09,
+    "passed": true,
+    "rmse": 7.549229785631515e-08
+  },
+  "input_quantization": {
+    "max_lsb_error": 0,
+    "mismatched_elements": 0,
+    "passed": true,
+    "scale": 0.012634358368813992,
+    "zero_point": -128
+  },
+  "passed": true,
+  "reference": {
+    "dtype": "float32",
+    "path": "/home/cy/code/program/LED_TEST/real_testset/features/pcen/test_data.npy",
+    "sha256": "c4dfddce3f7e252c70ef1540c3ebd1eb7f9c44157102e10a8040b5e640fadd0c"
+  },
+  "schema_version": 1,
+  "shape": [
+    32,
+    40
+  ]
+}
