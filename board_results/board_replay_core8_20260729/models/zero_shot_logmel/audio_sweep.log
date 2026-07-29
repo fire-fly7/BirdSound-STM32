@@ -1,0 +1,28 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 audio-sweep --manifest /home/cy/code/program/LED_TEST/board_results/board_replay_core8_20260729/selected_manifest.csv --root /home/cy/code/program/LED_TEST/board_replay_testset/raw_pcm_probe --chunk-samples 2048 --output /home/cy/code/program/LED_TEST/board_results/board_replay_core8_20260729/models/zero_shot_logmel/predictions.csv
+[1/8] row 0 xeno_val_1094099_s0000.wav: 0 Agelaius_phoeniceus
+[2/8] row 1 xeno_val_142555_s0002.wav: 1 Cardinalis_cardinalis
+[3/8] row 2 xeno_val_160053_s0003.wav: 1 Cardinalis_cardinalis
+[4/8] row 3 xeno_val_639144_s0002.wav: 3 Corvus_brachyrhynchos
+[5/8] row 4 xeno_val_91789_s0003.wav: 4 Setophaga_aestiva
+[6/8] row 5 xeno_val_372307_s0002.wav: 4 Setophaga_aestiva
+[7/8] row 6 xeno_val_454621_s0000.wav: 0 Agelaius_phoeniceus
+[8/8] row 7 xeno_val_1012677_s0006.wav: 2 Certhia_americana
+{
+  "manifest_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "recordings": 8,
+  "labelled_recordings": 8,
+  "correct_recordings": 4,
+  "accuracy": 0.5,
+  "frontend_elapsed_us_median": 66792.5,
+  "inference_elapsed_us_median": 2112665.5
+}
+wrote per-recording results: /home/cy/code/program/LED_TEST/board_results/board_replay_core8_20260729/models/zero_shot_logmel/predictions.csv

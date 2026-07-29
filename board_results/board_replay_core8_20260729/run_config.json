@@ -1,0 +1,42 @@
+{
+  "annotation_policy": "source-label",
+  "created_at": "2026-07-29T06:08:34+00:00",
+  "manifest": "/home/cy/code/program/LED_TEST/board_replay_testset/raw_pcm_probe/manifest.csv",
+  "manifest_sha256": "3a0d5053fa214c44900393b3856771b3bf72a2606a5b33503c06adbb6c05d406",
+  "models": [
+    "zero_shot_mfcc",
+    "zero_shot_logmel",
+    "zero_shot_pcen",
+    "db3v_strict_10shot_logmel_head_only_seed_42",
+    "db3v_strict_10shot_logmel_head_only_seed_123",
+    "db3v_strict_10shot_logmel_head_only_seed_2026",
+    "birdset_strict_20shot_mfcc_bn_head_replay_seed_42",
+    "birdset_strict_20shot_mfcc_bn_head_replay_seed_123",
+    "birdset_strict_20shot_mfcc_bn_head_replay_seed_2026",
+    "birdset_strict_20shot_logmel_head_only_seed_42",
+    "birdset_strict_20shot_logmel_head_only_seed_123",
+    "birdset_strict_20shot_logmel_head_only_seed_2026"
+  ],
+  "pack": "/tmp/STM32_deploy_raw_audio_experiment_pack_42ead2e6_073a1f1a",
+  "pack_index_sha256": "0d2bbdd062610fb58dd181c21f8c44534d1def853d41577c790450ebe824a327",
+  "parity": true,
+  "parity_reference": {
+    "max_lsb_error": 0,
+    "resolver": "BUILTIN_REF",
+    "runtime": "tensorflow-cpu==2.19.0"
+  },
+  "samples": 8,
+  "schema_version": 1,
+  "selection": {
+    "count": 8,
+    "start": 0,
+    "stride": 1
+  },
+  "selection_sha256": "f947417c95015310de4d4f62678a6f24c76515c231afc35806f6d7dddfdb7277",
+  "transport": {
+    "baud": 115200,
+    "chunk_samples": 2048,
+    "port": "/dev/ttyACM0",
+    "timeout": 12.0
+  }
+}

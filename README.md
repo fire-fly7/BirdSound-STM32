@@ -254,9 +254,14 @@ python3 tools/run_board_benchmark.py refresh-parity \
 python3 tools/verify_board_evidence.py \
   --run board_results/all_models_64 \
   --pack /path/to/unpacked-package \
+  --expected-models 57 \
   --output board_results/all_models_64/evidence_verification.json \
   --hashes-output board_results/all_models_64/artifact_hashes.csv
 ```
+
+核验 `--scope core` 或 `--chain` 生成的分阶段运行时省略
+`--expected-models`；校验器会读取 `run_config.json` 的实际模型集合，并在报告中以
+`complete_pack: false` 明确标记这不是 57 模型全量运行。
 
 如果只有尚未人工复核的 `pc_wav_only/send_manifest.csv`，可生成一个明确标记为
 “仅源标签、不能作为论文最终指标”的平衡链路冒烟清单：

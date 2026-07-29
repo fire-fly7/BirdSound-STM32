@@ -1,0 +1,62 @@
+{
+  "annotation_policy": "source-label",
+  "class_counts": {
+    "Agelaius_phoeniceus": 24,
+    "Cardinalis_cardinalis": 24,
+    "Certhia_americana": 24,
+    "Corvus_brachyrhynchos": 24,
+    "Setophaga_aestiva": 24,
+    "Setophaga_ruticilla": 24,
+    "Spinus_tristis": 24,
+    "Turdus_migratorius": 24
+  },
+  "classes": 8,
+  "low_rms_warnings": [
+    {
+      "peak": 304,
+      "rms": 26.544,
+      "sample_id": "db3v_common20_r1_153402_1_s02",
+      "warning": "very_low_rms"
+    },
+    {
+      "peak": 129,
+      "rms": 24.402,
+      "sample_id": "db3v_common20_r1_577345_10_s02",
+      "warning": "very_low_rms"
+    },
+    {
+      "peak": 82,
+      "rms": 16.307,
+      "sample_id": "db3v_common20_r1_153402_1_s03",
+      "warning": "very_low_rms"
+    },
+    {
+      "peak": 173,
+      "rms": 29.563,
+      "sample_id": "db3v_common20_r1_577345_10_s05",
+      "warning": "very_low_rms"
+    },
+    {
+      "peak": 97,
+      "rms": 17.428,
+      "sample_id": "db3v_common20_r1_153402_1_s06",
+      "warning": "very_low_rms"
+    }
+  ],
+  "manifest": "/home/cy/code/program/LED_TEST/board_replay_testset/raw_pcm_probe/manifest.csv",
+  "manifest_sha256": "3a0d5053fa214c44900393b3856771b3bf72a2606a5b33503c06adbb6c05d406",
+  "samples": 192,
+  "schema_version": 1,
+  "scientific_metrics_valid": false,
+  "source_recordings": 24,
+  "source_recordings_with_multiple_windows": 24,
+  "testset": "/home/cy/code/program/LED_TEST/board_replay_testset/raw_pcm_probe",
+  "valid": true,
+  "wav_spec": {
+    "channels": 1,
+    "encoding": "PCM16 little-endian signed",
+    "frames": 16000,
+    "pcm_bytes": 32000,
+    "sample_rate": 16000
+  }
+}

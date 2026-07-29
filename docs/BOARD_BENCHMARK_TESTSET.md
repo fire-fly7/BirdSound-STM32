@@ -235,9 +235,14 @@ board_results/<run-id>/
 python3 tools/verify_board_evidence.py \
   --run board_results/all_models_64 \
   --pack /path/to/unpacked-package \
+  --expected-models 57 \
   --output board_results/all_models_64/evidence_verification.json \
   --hashes-output board_results/all_models_64/artifact_hashes.csv
 ```
+
+核验 `--scope core` 或 `--chain` 生成的阶段性运行时省略
+`--expected-models`；校验器将使用 `run_config.json` 中的实际模型集合，并以
+`complete_pack: false` 标记非全量结果。
 
 ## 9. 仅源标签的链路冒烟
 

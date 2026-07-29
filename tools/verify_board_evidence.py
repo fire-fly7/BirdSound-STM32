@@ -44,7 +44,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", required=True, type=Path)
     parser.add_argument("--pack", required=True, type=Path)
-    parser.add_argument("--expected-models", type=int, default=57)
+    parser.add_argument(
+        "--expected-models",
+        type=int,
+        help="expected number of models in this run (defaults to run_config.json)",
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--hashes-output", type=Path)
     return parser.parse_args()
@@ -110,7 +114,7 @@ def main() -> int:
     args = parse_args()
     run = args.run.resolve()
     pack = args.pack.resolve()
-    if args.expected_models <= 0:
+    if args.expected_models is not None and args.expected_models <= 0:
         raise SystemExit("--expected-models must be positive")
     try:
         config = load_json(run / "run_config.json")
@@ -118,26 +122,54 @@ def main() -> int:
         provenance = load_json(pack / "provenance.json")
         pack_rows = load_csv(pack / "INDEX.csv")
         summary_rows = load_csv(run / "summary.csv")
-        if len(pack_rows) != args.expected_models:
+        configured_ids = config.get("models")
+        if not isinstance(configured_ids, list) or not configured_ids:
+            raise EvidenceError("run_config models must be a non-empty list")
+        if not all(isinstance(chain_id, str) and chain_id for chain_id in configured_ids):
+            raise EvidenceError("run_config models contains an invalid chain_id")
+        if len(set(configured_ids)) != len(configured_ids):
+            raise EvidenceError("run_config models contains duplicate chain_id values")
+        expected_count = (
+            args.expected_models
+            if args.expected_models is not None
+            else len(configured_ids)
+        )
+        if len(configured_ids) != expected_count:
             raise EvidenceError(
-                f"pack has {len(pack_rows)} models, expected {args.expected_models}"
+                f"run_config has {len(configured_ids)} models, expected "
+                f"{expected_count}"
             )
-        if len(summary_rows) != args.expected_models:
+        if len(summary_rows) != expected_count:
             raise EvidenceError(
                 f"summary has {len(summary_rows)} models, expected "
-                f"{args.expected_models}"
+                f"{expected_count}"
             )
         pack_by_id = {row["chain_id"]: row for row in pack_rows}
         if len(pack_by_id) != len(pack_rows):
             raise EvidenceError("pack INDEX.csv contains duplicate chain_id values")
+        missing_from_pack = [
+            chain_id for chain_id in configured_ids if chain_id not in pack_by_id
+        ]
+        if missing_from_pack:
+            raise EvidenceError(
+                "run_config model IDs are missing from pack INDEX.csv: "
+                + ", ".join(missing_from_pack)
+            )
         summary_by_id = {row["chain_id"]: row for row in summary_rows}
         if len(summary_by_id) != len(summary_rows):
             raise EvidenceError("summary.csv contains duplicate chain_id values")
-        expected_ids = list(pack_by_id)
-        if config.get("models") != expected_ids:
-            raise EvidenceError("run_config model order does not match pack INDEX.csv")
-        if set(summary_by_id) != set(pack_by_id):
-            raise EvidenceError("summary model IDs do not match pack INDEX.csv")
+        configured_set = set(configured_ids)
+        expected_ids = [
+            row["chain_id"]
+            for row in pack_rows
+            if row["chain_id"] in configured_set
+        ]
+        if configured_ids != expected_ids:
+            raise EvidenceError(
+                "run_config model order does not match its selection from pack INDEX.csv"
+            )
+        if set(summary_by_id) != configured_set:
+            raise EvidenceError("summary model IDs do not match run_config models")
         if config.get("pack_index_sha256") != sha256_file(pack / "INDEX.csv"):
             raise EvidenceError("run_config pack index SHA-256 does not match the pack")
         if not config.get("parity"):
@@ -279,6 +311,8 @@ def main() -> int:
             "schema_version": 1,
             "passed": True,
             "models": len(expected_ids),
+            "pack_models": len(pack_rows),
+            "complete_pack": len(expected_ids) == len(pack_rows),
             "model_status_counts": {"complete": len(expected_ids)},
             "groups": dict(sorted(groups.items())),
             "features": dict(sorted(features.items())),
