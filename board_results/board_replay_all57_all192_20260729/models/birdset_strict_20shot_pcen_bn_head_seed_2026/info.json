@@ -1,0 +1,37 @@
+{
+  "activation": "sigmoid",
+  "activation_id": 2,
+  "arena_bytes": 98304,
+  "arena_used": 79124,
+  "feature": "PCEN",
+  "feature_id": 3,
+  "input_dims": [
+    1,
+    32,
+    40,
+    1
+  ],
+  "input_elements": 1280,
+  "input_scale": 0.012540994212031364,
+  "input_type": 9,
+  "input_zero_point": -128,
+  "label_count": 8,
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "model_bytes": 49968,
+  "model_name": "birdset_strict_20shot_pcen_bn_head_seed_2026",
+  "model_sha256": "d81e645c76a6a5ddaed24043c845ca09c569b8bb1ea2b52eb246171bff376f4e",
+  "model_status": 0,
+  "output_count": 8,
+  "output_scale": 0.00390625,
+  "output_type": 9,
+  "output_zero_point": -128
+}

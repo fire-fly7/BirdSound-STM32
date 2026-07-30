@@ -1,0 +1,37 @@
+{
+  "activation": "softmax",
+  "activation_id": 1,
+  "arena_bytes": 98304,
+  "arena_used": 79172,
+  "feature": "PCEN",
+  "feature_id": 3,
+  "input_dims": [
+    1,
+    32,
+    40,
+    1
+  ],
+  "input_elements": 1280,
+  "input_scale": 0.012543842196464539,
+  "input_type": 9,
+  "input_zero_point": -128,
+  "label_count": 8,
+  "labels": [
+    "Agelaius_phoeniceus",
+    "Cardinalis_cardinalis",
+    "Certhia_americana",
+    "Corvus_brachyrhynchos",
+    "Setophaga_aestiva",
+    "Setophaga_ruticilla",
+    "Spinus_tristis",
+    "Turdus_migratorius"
+  ],
+  "model_bytes": 49984,
+  "model_name": "db3v_strict_5shot_pcen_bn_head_replay_seed_42",
+  "model_sha256": "e82332072d73a47d73d0ddb76c9e4e7cbbe6de2af5c4258cce51d2d96a45cf49",
+  "model_status": 0,
+  "output_count": 8,
+  "output_scale": 0.00390625,
+  "output_type": 9,
+  "output_zero_point": -128
+}

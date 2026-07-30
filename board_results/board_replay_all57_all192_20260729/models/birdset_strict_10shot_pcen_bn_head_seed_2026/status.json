@@ -1,0 +1,110 @@
+{
+  "chain_id": "birdset_strict_10shot_pcen_bn_head_seed_2026",
+  "completed_at": "2026-07-29T20:15:12+00:00",
+  "metrics": {
+    "accuracy": 0.296875,
+    "balanced_accuracy": 0.296875,
+    "confusion_matrix": [
+      [
+        12,
+        9,
+        1,
+        0,
+        0,
+        0,
+        0,
+        2
+      ],
+      [
+        2,
+        20,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        15,
+        6,
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        3,
+        13,
+        0,
+        6,
+        0,
+        1,
+        0,
+        1
+      ],
+      [
+        1,
+        14,
+        2,
+        0,
+        5,
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        14,
+        0,
+        1,
+        6,
+        2,
+        0,
+        0
+      ],
+      [
+        8,
+        10,
+        0,
+        1,
+        1,
+        0,
+        3,
+        1
+      ],
+      [
+        5,
+        14,
+        0,
+        0,
+        1,
+        1,
+        0,
+        3
+      ]
+    ],
+    "correct": 57,
+    "frontend_elapsed_us_median": 252823.0,
+    "inference_elapsed_us_median": 2107299.0,
+    "macro_f1": 0.28136616711934315,
+    "parity": {
+      "f32_vs_native_max_lsb_error": 0,
+      "f32_vs_native_prediction_mismatches": 0,
+      "generated_tensors": 5,
+      "max_lsb_error": 0,
+      "max_lsb_error_limit": 0,
+      "passed": true,
+      "prediction_mismatches": 0,
+      "reference_comparisons": 10,
+      "reference_resolver": "BUILTIN_REF",
+      "reference_runtime": "tensorflow-cpu==2.19.0"
+    },
+    "samples": 192
+  },
+  "model_sha256": "2bdaa8dc912ec27aa2ad2ab2af1b7745e635b08ddf8bf82d2cc63beea54925c7",
+  "started_at": "2026-07-29T19:57:54+00:00",
+  "status": "complete"
+}

@@ -28,11 +28,12 @@ PCEN；优先实验列表、烧录命令和效果测试顺序见包内 `README.m
 `evidence/` 中提交的原始 `info.json`、串口日志、`predictions.csv` 与汇总，不再
 把无原始记录的人工数值当作实板结果。
 
-2026-07-29 的
-[57 模型实板验证证据](evidence/board_2026-07-29/README.md)包含 57/57 烧录
-校验、570 次零 LSB 输出对拍、456 条原始 WAV 预测、三种前端误差报告和逐模型
-Arena/延迟原始记录。该批 8 条来源标签数据只作为完整链路冒烟测试，报告已明确
-标记 `scientific_metrics_valid=false`，不冒充论文最终指标。
+2026-07-29 至 2026-07-30 的
+[57 模型 × 192 条录音完整实板结果](board_results/board_replay_all57_all192_20260729/RESULTS.md)
+包含 57/57 烧录校验、10944 条原始 WAV 预测和 570 次零 LSB 输出对拍。
+[早期验证证据](evidence/board_2026-07-29/README.md)另保留三种前端误差报告和
+8 条来源标签链路冒烟。两批来源标签数据都明确标记
+`scientific_metrics_valid=false`，不冒充论文最终指标。
 
 干净克隆会初始化官方 TFLite Micro 子模块；首次 CMake 配置自动下载该 TFLM
 提交锁定且校验过的 FlatBuffers、gemmlowp 和 ruy 版本：

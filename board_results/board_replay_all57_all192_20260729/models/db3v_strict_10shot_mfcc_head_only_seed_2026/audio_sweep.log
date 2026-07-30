@@ -1,0 +1,396 @@
+$ /usr/bin/python3 /home/cy/code/program/LED_TEST/tools/serial_model_client.py --port /dev/ttyACM0 --baud 115200 --timeout 12.0 audio-sweep --manifest /home/cy/code/program/LED_TEST/board_results/board_replay_all57_all192_20260729/selected_manifest.csv --root /home/cy/code/program/LED_TEST/board_replay_testset/raw_pcm_probe --chunk-samples 2048 --output /home/cy/code/program/LED_TEST/board_results/board_replay_all57_all192_20260729/models/db3v_strict_10shot_mfcc_head_only_seed_2026/predictions.csv
+[1/192] row 0 xeno_val_1094099_s0000.wav: 0 Agelaius_phoeniceus
+[2/192] row 1 xeno_val_142555_s0002.wav: 1 Cardinalis_cardinalis
+[3/192] row 2 xeno_val_160053_s0003.wav: 2 Certhia_americana
+[4/192] row 3 xeno_val_639144_s0002.wav: 3 Corvus_brachyrhynchos
+[5/192] row 4 xeno_val_91789_s0003.wav: 2 Certhia_americana
+[6/192] row 5 xeno_val_372307_s0002.wav: 1 Cardinalis_cardinalis
+[7/192] row 6 xeno_val_454621_s0000.wav: 0 Agelaius_phoeniceus
+[8/192] row 7 xeno_val_1012677_s0006.wav: 0 Agelaius_phoeniceus
+[9/192] row 8 xeno_val_1094099_s0008.wav: 0 Agelaius_phoeniceus
+[10/192] row 9 xeno_val_142555_s0005.wav: 2 Certhia_americana
+[11/192] row 10 xeno_val_160053_s0007.wav: 2 Certhia_americana
+[12/192] row 11 xeno_val_639144_s0004.wav: 3 Corvus_brachyrhynchos
+[13/192] row 12 xeno_val_91789_s0008.wav: 1 Cardinalis_cardinalis
+[14/192] row 13 xeno_val_372307_s0004.wav: 1 Cardinalis_cardinalis
+[15/192] row 14 xeno_val_454621_s0001.wav: 2 Certhia_americana
+[16/192] row 15 xeno_val_1012677_s0027.wav: 7 Turdus_migratorius
+[17/192] row 16 xeno_val_1094099_s0016.wav: 7 Turdus_migratorius
+[18/192] row 17 xeno_val_142555_s0009.wav: 0 Agelaius_phoeniceus
+[19/192] row 18 xeno_val_160053_s0011.wav: 2 Certhia_americana
+[20/192] row 19 xeno_val_639144_s0007.wav: 3 Corvus_brachyrhynchos
+[21/192] row 20 xeno_val_91789_s0012.wav: 2 Certhia_americana
+[22/192] row 21 xeno_val_372307_s0006.wav: 0 Agelaius_phoeniceus
+[23/192] row 22 xeno_val_454621_s0003.wav: 1 Cardinalis_cardinalis
+[24/192] row 23 xeno_val_1012677_s0043.wav: 7 Turdus_migratorius
+[25/192] row 24 xeno_val_1094099_s0024.wav: 2 Certhia_americana
+[26/192] row 25 xeno_val_142555_s0015.wav: 6 Spinus_tristis
+[27/192] row 26 xeno_val_160053_s0018.wav: 0 Agelaius_phoeniceus
+[28/192] row 27 xeno_val_639144_s0011.wav: 3 Corvus_brachyrhynchos
+[29/192] row 28 xeno_val_91789_s0018.wav: 4 Setophaga_aestiva
+[30/192] row 29 xeno_val_372307_s0009.wav: 1 Cardinalis_cardinalis
+[31/192] row 30 xeno_val_454621_s0004.wav: 1 Cardinalis_cardinalis
+[32/192] row 31 xeno_val_1012677_s0058.wav: 7 Turdus_migratorius
+[33/192] row 32 xeno_val_1094099_s0029.wav: 0 Agelaius_phoeniceus
+[34/192] row 33 xeno_val_142555_s0016.wav: 6 Spinus_tristis
+[35/192] row 34 xeno_val_160053_s0020.wav: 2 Certhia_americana
+[36/192] row 35 xeno_val_639144_s0017.wav: 3 Corvus_brachyrhynchos
+[37/192] row 36 xeno_val_91789_s0023.wav: 2 Certhia_americana
+[38/192] row 37 xeno_val_372307_s0013.wav: 4 Setophaga_aestiva
+[39/192] row 38 xeno_val_454621_s0005.wav: 1 Cardinalis_cardinalis
+[40/192] row 39 xeno_val_1012677_s0071.wav: 1 Cardinalis_cardinalis
+[41/192] row 40 xeno_val_1094099_s0043.wav: 0 Agelaius_phoeniceus
+[42/192] row 41 xeno_val_142555_s0022.wav: 4 Setophaga_aestiva
+[43/192] row 42 xeno_val_160053_s0027.wav: 3 Corvus_brachyrhynchos
+[44/192] row 43 xeno_val_639144_s0022.wav: 3 Corvus_brachyrhynchos
+[45/192] row 44 xeno_val_91789_s0027.wav: 1 Cardinalis_cardinalis
+[46/192] row 45 xeno_val_372307_s0015.wav: 1 Cardinalis_cardinalis
+[47/192] row 46 xeno_val_454621_s0006.wav: 1 Cardinalis_cardinalis
+[48/192] row 47 xeno_val_1012677_s0092.wav: 7 Turdus_migratorius
+[49/192] row 48 xeno_val_1094099_s0046.wav: 2 Certhia_americana
+[50/192] row 49 xeno_val_142555_s0026.wav: 6 Spinus_tristis
+[51/192] row 50 xeno_val_160053_s0030.wav: 1 Cardinalis_cardinalis
+[52/192] row 51 xeno_val_639144_s0023.wav: 3 Corvus_brachyrhynchos
+[53/192] row 52 xeno_val_91789_s0034.wav: 1 Cardinalis_cardinalis
+[54/192] row 53 xeno_val_372307_s0018.wav: 0 Agelaius_phoeniceus
+[55/192] row 54 xeno_val_454621_s0008.wav: 2 Certhia_americana
+[56/192] row 55 xeno_val_1012677_s0107.wav: 6 Spinus_tristis
+[57/192] row 56 xeno_val_1094099_s0052.wav: 3 Corvus_brachyrhynchos
+[58/192] row 57 xeno_val_142555_s0030.wav: 1 Cardinalis_cardinalis
+[59/192] row 58 xeno_val_160053_s0034.wav: 0 Agelaius_phoeniceus
+[60/192] row 59 xeno_val_639144_s0030.wav: 3 Corvus_brachyrhynchos
+[61/192] row 60 xeno_val_91789_s0040.wav: 1 Cardinalis_cardinalis
+[62/192] row 61 xeno_val_372307_s0023.wav: 4 Setophaga_aestiva
+[63/192] row 62 xeno_val_454621_s0009.wav: 3 Corvus_brachyrhynchos
+[64/192] row 63 xeno_val_1012677_s0119.wav: 3 Corvus_brachyrhynchos
+[65/192] row 64 db3v_common20_r1_531004_31_s00.wav: 4 Setophaga_aestiva
+[66/192] row 65 db3v_common20_r1_725495_13_s00.wav: 1 Cardinalis_cardinalis
+[67/192] row 66 db3v_common20_r1_153402_1_s00.wav: 1 Cardinalis_cardinalis
+[68/192] row 67 db3v_common20_r1_279723_0_s00.wav: 4 Setophaga_aestiva
+[69/192] row 68 db3v_common20_r1_577345_10_s00.wav: 4 Setophaga_aestiva
+[70/192] row 69 db3v_common20_r1_193127_19_s00.wav: 4 Setophaga_aestiva
+[71/192] row 70 db3v_common20_r1_437593_1_s00.wav: 1 Cardinalis_cardinalis
+[72/192] row 71 db3v_common20_r1_378442_3_s00.wav: 0 Agelaius_phoeniceus
+[73/192] row 72 db3v_common20_r1_531004_31_s01.wav: 0 Agelaius_phoeniceus
+[74/192] row 73 db3v_common20_r1_725495_13_s01.wav: 7 Turdus_migratorius
+[75/192] row 74 db3v_common20_r1_153402_1_s01.wav: 0 Agelaius_phoeniceus
+[76/192] row 75 db3v_common20_r1_279723_0_s01.wav: 3 Corvus_brachyrhynchos
+[77/192] row 76 db3v_common20_r1_577345_10_s01.wav: 4 Setophaga_aestiva
+[78/192] row 77 db3v_common20_r1_193127_19_s01.wav: 4 Setophaga_aestiva
+[79/192] row 78 db3v_common20_r1_437593_1_s01.wav: 7 Turdus_migratorius
+[80/192] row 79 db3v_common20_r1_378442_3_s01.wav: 1 Cardinalis_cardinalis
+[81/192] row 80 db3v_common20_r1_531004_31_s02.wav: 0 Agelaius_phoeniceus
+[82/192] row 81 db3v_common20_r1_725495_13_s02.wav: 7 Turdus_migratorius
+[83/192] row 82 db3v_common20_r1_153402_1_s02.wav: 0 Agelaius_phoeniceus
+[84/192] row 83 db3v_common20_r1_279723_0_s02.wav: 4 Setophaga_aestiva
+[85/192] row 84 db3v_common20_r1_577345_10_s02.wav: 4 Setophaga_aestiva
+[86/192] row 85 db3v_common20_r1_193127_19_s02.wav: 5 Setophaga_ruticilla
+[87/192] row 86 db3v_common20_r1_437593_1_s02.wav: 7 Turdus_migratorius
+[88/192] row 87 db3v_common20_r1_378442_3_s02.wav: 6 Spinus_tristis
+[89/192] row 88 db3v_common20_r1_531004_31_s03.wav: 0 Agelaius_phoeniceus
+[90/192] row 89 db3v_common20_r1_725495_13_s03.wav: 1 Cardinalis_cardinalis
+[91/192] row 90 db3v_common20_r1_153402_1_s03.wav: 0 Agelaius_phoeniceus
+[92/192] row 91 db3v_common20_r1_279723_0_s03.wav: 3 Corvus_brachyrhynchos
+[93/192] row 92 db3v_common20_r1_577345_10_s03.wav: 4 Setophaga_aestiva
+[94/192] row 93 db3v_common20_r1_193127_19_s03.wav: 5 Setophaga_ruticilla
+[95/192] row 94 db3v_common20_r1_437593_1_s03.wav: 7 Turdus_migratorius
+[96/192] row 95 db3v_common20_r1_378442_3_s03.wav: 5 Setophaga_ruticilla
+[97/192] row 96 db3v_common20_r1_531004_31_s04.wav: 3 Corvus_brachyrhynchos
+[98/192] row 97 db3v_common20_r1_725495_13_s04.wav: 1 Cardinalis_cardinalis
+[99/192] row 98 db3v_common20_r1_153402_1_s04.wav: 0 Agelaius_phoeniceus
+[100/192] row 99 db3v_common20_r1_279723_0_s04.wav: 3 Corvus_brachyrhynchos
+[101/192] row 100 db3v_common20_r1_577345_10_s04.wav: 4 Setophaga_aestiva
+[102/192] row 101 db3v_common20_r1_193127_19_s04.wav: 2 Certhia_americana
+[103/192] row 102 db3v_common20_r1_437593_1_s04.wav: 6 Spinus_tristis
+[104/192] row 103 db3v_common20_r1_378442_3_s04.wav: 6 Spinus_tristis
+[105/192] row 104 db3v_common20_r1_531004_31_s05.wav: 3 Corvus_brachyrhynchos
+[106/192] row 105 db3v_common20_r1_725495_13_s05.wav: 2 Certhia_americana
+[107/192] row 106 db3v_common20_r1_153402_1_s05.wav: 2 Certhia_americana
+[108/192] row 107 db3v_common20_r1_279723_0_s05.wav: 3 Corvus_brachyrhynchos
+[109/192] row 108 db3v_common20_r1_577345_10_s05.wav: 4 Setophaga_aestiva
+[110/192] row 109 db3v_common20_r1_193127_19_s05.wav: 0 Agelaius_phoeniceus
+[111/192] row 110 db3v_common20_r1_437593_1_s05.wav: 1 Cardinalis_cardinalis
+[112/192] row 111 db3v_common20_r1_378442_3_s05.wav: 7 Turdus_migratorius
+[113/192] row 112 db3v_common20_r1_531004_31_s06.wav: 1 Cardinalis_cardinalis
+[114/192] row 113 db3v_common20_r1_725495_13_s06.wav: 7 Turdus_migratorius
+[115/192] row 114 db3v_common20_r1_153402_1_s06.wav: 4 Setophaga_aestiva
+[116/192] row 115 db3v_common20_r1_279723_0_s06.wav: 3 Corvus_brachyrhynchos
+[117/192] row 116 db3v_common20_r1_577345_10_s06.wav: 4 Setophaga_aestiva
+[118/192] row 117 db3v_common20_r1_193127_19_s06.wav: 2 Certhia_americana
+[119/192] row 118 db3v_common20_r1_437593_1_s06.wav: 6 Spinus_tristis
+[120/192] row 119 db3v_common20_r1_378442_3_s06.wav: 0 Agelaius_phoeniceus
+[121/192] row 120 db3v_common20_r1_531004_31_s07.wav: 3 Corvus_brachyrhynchos
+[122/192] row 121 db3v_common20_r1_725495_13_s07.wav: 1 Cardinalis_cardinalis
+[123/192] row 122 db3v_common20_r1_153402_1_s07.wav: 6 Spinus_tristis
+[124/192] row 123 db3v_common20_r1_279723_0_s07.wav: 3 Corvus_brachyrhynchos
+[125/192] row 124 db3v_common20_r1_577345_10_s07.wav: 5 Setophaga_ruticilla
+[126/192] row 125 db3v_common20_r1_193127_19_s07.wav: 4 Setophaga_aestiva
+[127/192] row 126 db3v_common20_r1_437593_1_s07.wav: 0 Agelaius_phoeniceus
+[128/192] row 127 db3v_common20_r1_378442_3_s07.wav: 3 Corvus_brachyrhynchos
+[129/192] row 128 db3v_common20_r3_175040_3_s00.wav: 1 Cardinalis_cardinalis
+[130/192] row 129 db3v_common20_r3_542090_1_s00.wav: 4 Setophaga_aestiva
+[131/192] row 130 db3v_common20_r3_101961_0_s00.wav: 5 Setophaga_ruticilla
+[132/192] row 131 db3v_common20_r3_167792_14_s00.wav: 2 Certhia_americana
+[133/192] row 132 db3v_common20_r3_636581_0_s00.wav: 2 Certhia_americana
+[134/192] row 133 db3v_common20_r3_382119_4_s00.wav: 5 Setophaga_ruticilla
+[135/192] row 134 db3v_common20_r3_313678_3_s00.wav: 5 Setophaga_ruticilla
+[136/192] row 135 db3v_common20_r3_476494_0_s00.wav: 7 Turdus_migratorius
+[137/192] row 136 db3v_common20_r3_175040_3_s01.wav: 4 Setophaga_aestiva
+[138/192] row 137 db3v_common20_r3_542090_1_s01.wav: 1 Cardinalis_cardinalis
+[139/192] row 138 db3v_common20_r3_101961_0_s01.wav: 2 Certhia_americana
+[140/192] row 139 db3v_common20_r3_167792_14_s01.wav: 0 Agelaius_phoeniceus
+[141/192] row 140 db3v_common20_r3_636581_0_s01.wav: 4 Setophaga_aestiva
+[142/192] row 141 db3v_common20_r3_382119_4_s01.wav: 5 Setophaga_ruticilla
+[143/192] row 142 db3v_common20_r3_313678_3_s01.wav: 6 Spinus_tristis
+[144/192] row 143 db3v_common20_r3_476494_0_s01.wav: 0 Agelaius_phoeniceus
+[145/192] row 144 db3v_common20_r3_175040_3_s02.wav: 3 Corvus_brachyrhynchos
+[146/192] row 145 db3v_common20_r3_542090_1_s02.wav: 1 Cardinalis_cardinalis
+[147/192] row 146 db3v_common20_r3_101961_0_s02.wav: 5 Setophaga_ruticilla
+[148/192] row 147 db3v_common20_r3_167792_14_s02.wav: 3 Corvus_brachyrhynchos
+[149/192] row 148 db3v_common20_r3_636581_0_s02.wav: 5 Setophaga_ruticilla
+[150/192] row 149 db3v_common20_r3_382119_4_s02.wav: 5 Setophaga_ruticilla
+[151/192] row 150 db3v_common20_r3_313678_3_s02.wav: 5 Setophaga_ruticilla
+[152/192] row 151 db3v_common20_r3_476494_0_s02.wav: 0 Agelaius_phoeniceus
+[153/192] row 152 db3v_common20_r3_175040_3_s03.wav: 3 Corvus_brachyrhynchos
+[154/192] row 153 db3v_common20_r3_542090_1_s03.wav: 1 Cardinalis_cardinalis
+[155/192] row 154 db3v_common20_r3_101961_0_s03.wav: 6 Spinus_tristis
+[156/192] row 155 db3v_common20_r3_167792_14_s03.wav: 2 Certhia_americana
+[157/192] row 156 db3v_common20_r3_636581_0_s03.wav: 6 Spinus_tristis
+[158/192] row 157 db3v_common20_r3_382119_4_s03.wav: 5 Setophaga_ruticilla
+[159/192] row 158 db3v_common20_r3_313678_3_s03.wav: 6 Spinus_tristis
+[160/192] row 159 db3v_common20_r3_476494_0_s03.wav: 5 Setophaga_ruticilla
+[161/192] row 160 db3v_common20_r3_175040_3_s04.wav: 3 Corvus_brachyrhynchos
+[162/192] row 161 db3v_common20_r3_542090_1_s04.wav: 1 Cardinalis_cardinalis
+[163/192] row 162 db3v_common20_r3_101961_0_s04.wav: 5 Setophaga_ruticilla
+[164/192] row 163 db3v_common20_r3_167792_14_s04.wav: 2 Certhia_americana
+[165/192] row 164 db3v_common20_r3_636581_0_s04.wav: 6 Spinus_tristis
+[166/192] row 165 db3v_common20_r3_382119_4_s04.wav: 5 Setophaga_ruticilla
+[167/192] row 166 db3v_common20_r3_313678_3_s04.wav: 4 Setophaga_aestiva
+[168/192] row 167 db3v_common20_r3_476494_0_s04.wav: 5 Setophaga_ruticilla
+[169/192] row 168 db3v_common20_r3_175040_3_s05.wav: 3 Corvus_brachyrhynchos
+[170/192] row 169 db3v_common20_r3_542090_1_s05.wav: 1 Cardinalis_cardinalis
+[171/192] row 170 db3v_common20_r3_101961_0_s05.wav: 7 Turdus_migratorius
+[172/192] row 171 db3v_common20_r3_167792_14_s05.wav: 3 Corvus_brachyrhynchos
+[173/192] row 172 db3v_common20_r3_636581_0_s05.wav: 4 Setophaga_aestiva
+[174/192] row 173 db3v_common20_r3_382119_4_s05.wav: 5 Setophaga_ruticilla
+[175/192] row 174 db3v_common20_r3_313678_3_s05.wav: 6 Spinus_tristis
+[176/192] row 175 db3v_common20_r3_476494_0_s05.wav: 5 Setophaga_ruticilla
+[177/192] row 176 db3v_common20_r3_175040_3_s06.wav: 3 Corvus_brachyrhynchos
+[178/192] row 177 db3v_common20_r3_542090_1_s06.wav: 7 Turdus_migratorius
+[179/192] row 178 db3v_common20_r3_101961_0_s06.wav: 6 Spinus_tristis
+[180/192] row 179 db3v_common20_r3_167792_14_s06.wav: 2 Certhia_americana
+[181/192] row 180 db3v_common20_r3_636581_0_s06.wav: 4 Setophaga_aestiva
+[182/192] row 181 db3v_common20_r3_382119_4_s06.wav: 5 Setophaga_ruticilla
+[183/192] row 182 db3v_common20_r3_313678_3_s06.wav: 1 Cardinalis_cardinalis
+[184/192] row 183 db3v_common20_r3_476494_0_s06.wav: 4 Setophaga_aestiva
+[185/192] row 184 db3v_common20_r3_175040_3_s07.wav: 7 Turdus_migratorius
+[186/192] row 185 db3v_common20_r3_542090_1_s07.wav: 7 Turdus_migratorius
+[187/192] row 186 db3v_common20_r3_101961_0_s07.wav: 0 Agelaius_phoeniceus
+[188/192] row 187 db3v_common20_r3_167792_14_s07.wav: 2 Certhia_americana
+[189/192] row 188 db3v_common20_r3_636581_0_s07.wav: 3 Corvus_brachyrhynchos
+[190/192] row 189 db3v_common20_r3_382119_4_s07.wav: 5 Setophaga_ruticilla
+[191/192] row 190 db3v_common20_r3_313678_3_s07.wav: 7 Turdus_migratorius
+[192/192] row 191 db3v_common20_r3_476494_0_s07.wav: 7 Turdus_migratorius
+{
+  "manifest_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191
+  ],
+  "recordings": 192,
+  "labelled_recordings": 192,
+  "correct_recordings": 73,
+  "accuracy": 0.3802083333333333,
+  "frontend_elapsed_us_median": 80318.0,
+  "inference_elapsed_us_median": 422899.0
+}
+wrote per-recording results: /home/cy/code/program/LED_TEST/board_results/board_replay_all57_all192_20260729/models/db3v_strict_10shot_mfcc_head_only_seed_2026/predictions.csv
