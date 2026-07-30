@@ -83,21 +83,20 @@ App/AudioFrontend
   MFCC / LogMel / PCEN
           |
           v
-Core/model_inference + TFLite Micro
+App/ModelRuntime + TFLite Micro
           |
           v
 window inference + recording mean scores
 
-Core/audio_capture + legacy Core/mfcc
+App/Microphone/Legacy
           ^
           |
     麦克风采集（独立，当前目标不编译、不启动）
 ```
 
 串口固件使用 CMSIS-DSP 做 2048 点 RFFT，但不编译 `audio_capture.c` 和历史
-`Core/Src/mfcc.c`；`main.c` 也不会调用 SAI/DMA 初始化。SAI 中断回调只有定义
-`STM32_DEPLOY_MICROPHONE_FRONTEND` 时才会连接麦克风采集代码。因此串口录音实验
-与麦克风采集之间没有运行时依赖。
+MFCC；`Core/main.c` 只负责 MCU 启动并调用应用入口，不包含 SAI/DMA、串口协议或
+模型状态。因此串口录音实验与麦克风采集之间没有运行时依赖。
 
 ## Model_train 模型覆盖
 
@@ -381,13 +380,14 @@ softmax 输出取 argmax；sigmoid 输出除 argmax 外还按阈值生成
 ## 麦克风前端后续工作
 
 `App/AudioFrontend` 已实现与 Model_train 对齐的 MFCC、LogMel、PCEN，串口原始
-录音链路可用于全部 57 个模型。`Core/Src/audio_capture.c` 与
-`Core/Src/mfcc.c` 仍作为历史麦克风代码保留，但不属于串口目标；旧 MFCC 使用
-1024 点 FFT、Hamming、预加重和近似 Mel 采样，不能接入当前模型。
+录音链路可用于全部 57 个模型。`App/Microphone/Legacy` 保留历史麦克风和 MFCC
+参考代码，但不属于串口目标；旧 MFCC 使用 1024 点 FFT、Hamming、预加重和近似
+Mel 采样，不能接入当前模型。
 
 恢复实时麦克风时，应让新的采集目标只负责把连续 PCM16 送入
 `App/AudioFrontend` 的窗口接口，不复制或修改特征算法。这样串口实验与麦克风
 实验只有“PCM 来源”不同，后续板端处理完全共用。
 
-CubeMX 文件仍保留 SAI1 Block B 与 DMA 硬件配置，便于后续建立独立
-`App/Microphone` 目标；当前串口固件不会启动这些外设。
+CubeMX 文件仍记录 SAI1 Block B 与 DMA 硬件配置，便于后续建立独立
+`App/Microphone` 目标；SAI/DMA 初始化、MSP 和中断适配不再放在 `Core` 的串口
+启动路径中。

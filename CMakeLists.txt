@@ -36,12 +36,20 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C CXX ASM)
 
-# The microphone frontend is intentionally not part of this application. This
-# target accepts complete feature tensors over UART and only exercises model
-# deployment/inference.
+# The microphone capture frontend is intentionally not part of the serial
+# application. It receives PCM16 recordings over UART, then runs the shared
+# feature frontend and model inference entirely on the board.
 set(STM32_DEPLOY_APP "serial" CACHE STRING "Firmware application")
 set_property(CACHE STM32_DEPLOY_APP PROPERTY STRINGS serial)
-if(NOT STM32_DEPLOY_APP STREQUAL "serial")
+if(STM32_DEPLOY_APP STREQUAL "serial")
+    set(STM32_DEPLOY_APP_DEFINITIONS
+        STM32_DEPLOY_SERIAL_APP=1)
+    set(STM32_DEPLOY_APP_INCLUDE_DIRS
+        App/Serial/Inc)
+    set(STM32_DEPLOY_APP_SOURCES
+        App/Serial/Src/stm32_deploy_serial_app.c
+        App/Serial/Src/serial_model_app.c)
+else()
     message(FATAL_ERROR "Only STM32_DEPLOY_APP=serial is currently implemented")
 endif()
 
@@ -56,8 +64,10 @@ set_property(CACHE STM32_MODEL_FEATURE PROPERTY STRINGS "" MFCC LOGMEL PCEN)
 set(STM32_MODEL_SOURCE_COMMIT "unknown" CACHE STRING "Model_train source commit")
 set(STM32_MODEL_ARENA_BYTES "98304" CACHE STRING "Tensor arena size")
 
-set(STM32_MODEL_DATA_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/model_data.c")
-set(STM32_MODEL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc")
+set(STM32_MODEL_DATA_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/App/ModelRuntime/Src/model_data.c")
+set(STM32_MODEL_INCLUDE_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/App/ModelRuntime/Inc")
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 execute_process(
@@ -257,7 +267,7 @@ add_library(cmsis_dsp_frontend STATIC)
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    STM32_DEPLOY_SERIAL_APP=1
+    ${STM32_DEPLOY_APP_DEFINITIONS}
     # Add user defined symbols
 )
 
@@ -360,8 +370,10 @@ target_compile_definitions(cmsis_dsp_frontend PUBLIC
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${STM32_MODEL_INCLUDE_DIR}
     ${STM32_FRONTEND_GENERATED_DIR}
+    App/Inc
     App/AudioFrontend/Inc
-    App/Serial/Inc
+    App/ModelRuntime/Inc
+    ${STM32_DEPLOY_APP_INCLUDE_DIRS}
     Drivers/CMSIS/DSP/Include
     Drivers/CMSIS/Include
     Drivers/CMSIS/Core/Include
@@ -372,11 +384,11 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${STM32_MODEL_DATA_SOURCE}
     ${STM32_FRONTEND_GENERATED_DIR}/mfcc_frontend_tables.c
-    Core/Src/model_inference.cpp
-    Core/Src/model_test.cpp
+    App/ModelRuntime/Src/model_debug_log.c
+    App/ModelRuntime/Src/model_inference.cpp
+    App/ModelRuntime/Src/model_test.cpp
     App/AudioFrontend/Src/audio_frontend.c
-    App/Serial/Src/serial_model_app.c
-    Core/Src/debug_log.c
+    ${STM32_DEPLOY_APP_SOURCES}
 )
 
 

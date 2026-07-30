@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "serial_model_app.h"
+#include "stm32_deploy_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,23 +38,12 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-COM_InitTypeDef BspCOMInit;
-#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
-DMA_HandleTypeDef hdma_dma_generator0;
-SAI_HandleTypeDef hsai_BlockB1;
-DMA_HandleTypeDef hdma_sai1_b;
-#endif
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
-static void MX_DMA_Init(void);
-static void MX_SAI1_Init(void);
-#endif
 static void MX_ICACHE_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
@@ -94,27 +83,11 @@ int main(void)
   MX_GPIO_Init();
   MX_ICACHE_Init();
 
-  /* Initialize leds */
-  BSP_LED_Init(LED_GREEN);
-  BSP_LED_Init(LED_BLUE);
-  BSP_LED_Init(LED_RED);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
-
-  /* Initialize COM1 port (115200, 8 data bits, 1 stop bit, no parity) */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
+  /* USER CODE BEGIN 2 */
+  if (STM32DeployApp_Run() != 0)
   {
     Error_Handler();
   }
-
-  /* USER CODE BEGIN 2 */
-  SerialModelApp_Run(&hcom_uart[COM1]);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -179,54 +152,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief SAI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
-static void MX_SAI1_Init(void)
-{
-
-  /* USER CODE BEGIN SAI1_Init 0 */
-
-  /* USER CODE END SAI1_Init 0 */
-
-  /* USER CODE BEGIN SAI1_Init 1 */
-
-  /* USER CODE END SAI1_Init 1 */
-  hsai_BlockB1.Instance = SAI1_Block_B;
-  hsai_BlockB1.Init.AudioMode = SAI_MODEMASTER_RX;
-  hsai_BlockB1.Init.Synchro = SAI_ASYNCHRONOUS;
-  hsai_BlockB1.Init.OutputDrive = SAI_OUTPUTDRIVE_ENABLE;
-  hsai_BlockB1.Init.NoDivider = SAI_MASTERDIVIDER_ENABLE;
-  hsai_BlockB1.Init.FIFOThreshold = SAI_FIFOTHRESHOLD_1QF;
-  hsai_BlockB1.Init.AudioFrequency = SAI_AUDIO_FREQUENCY_16K;
-  hsai_BlockB1.Init.SynchroExt = SAI_SYNCEXT_DISABLE;
-  hsai_BlockB1.Init.MckOutput = SAI_MCK_OUTPUT_DISABLE;
-  hsai_BlockB1.Init.Mckdiv = 0;
-  hsai_BlockB1.Init.MckOverSampling = SAI_MCK_OVERSAMPLING_DISABLE;
-  hsai_BlockB1.Init.MonoStereoMode = SAI_STEREOMODE;
-  hsai_BlockB1.Init.CompandingMode = SAI_NOCOMPANDING;
-  hsai_BlockB1.Init.TriState = SAI_OUTPUT_NOTRELEASED;
-  if (HAL_SAI_InitProtocol(&hsai_BlockB1,
-                           SAI_I2S_STANDARD,
-                           SAI_PROTOCOL_DATASIZE_24BIT,
-                           2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  hsai_BlockB1.Init.ClockStrobing = SAI_CLOCKSTROBING_RISINGEDGE;
-  MODIFY_REG(hsai_BlockB1.Instance->CR1,
-             SAI_xCR1_CKSTR,
-             hsai_BlockB1.Init.ClockStrobing);
-  /* USER CODE BEGIN SAI1_Init 2 */
-
-  /* USER CODE END SAI1_Init 2 */
-
-}
-#endif
-
-/**
   * @brief ICACHE Initialization Function
   * @param None
   * @retval None
@@ -257,58 +182,6 @@ static void MX_ICACHE_Init(void)
   /* USER CODE END ICACHE_Init 2 */
 
 }
-
-/**
-  * Enable DMA controller clock
-  * Configure DMA for memory to memory transfers
-  *   hdma_dma_generator0
-  */
-#if defined(STM32_DEPLOY_MICROPHONE_FRONTEND)
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMAMUX1_CLK_ENABLE();
-  __HAL_RCC_DMA1_CLK_ENABLE();
-  __HAL_RCC_DMA2_CLK_ENABLE();
-
-  /* Configure DMA request hdma_dma_generator0 on DMA1_Channel2 */
-  hdma_dma_generator0.Instance = DMA1_Channel2;
-  hdma_dma_generator0.Init.Request = DMA_REQUEST_GENERATOR0;
-  hdma_dma_generator0.Init.Direction = DMA_PERIPH_TO_MEMORY;
-  hdma_dma_generator0.Init.PeriphInc = DMA_PINC_DISABLE;
-  hdma_dma_generator0.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_dma_generator0.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-  hdma_dma_generator0.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
-  hdma_dma_generator0.Init.Mode = DMA_CIRCULAR;
-  hdma_dma_generator0.Init.Priority = DMA_PRIORITY_HIGH;
-  if (HAL_DMA_Init(&hdma_dma_generator0) != HAL_OK)
-  {
-    Error_Handler( );
-  }
-
-  /*  */
-  if (HAL_DMA_ConfigChannelAttributes(&hdma_dma_generator0, DMA_CHANNEL_NPRIV) != HAL_OK)
-  {
-    Error_Handler( );
-  }
-
-  /* DMA interrupt init */
-  /* DMAMUX1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMAMUX1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMAMUX1_IRQn);
-  /* DMA1_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-  /* DMA2_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
-  /* SAI1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SAI1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(SAI1_IRQn);
-
-}
-#endif
 
 /**
   * @brief GPIO Initialization Function
