@@ -276,6 +276,10 @@
   #include "stm32l5xx_hal_dac.h"
 #endif /* HAL_DAC_MODULE_ENABLED */
 
+#ifdef HAL_DFSDM_MODULE_ENABLED
+  #include "stm32l5xx_hal_dfsdm.h"
+#endif /* HAL_DFSDM_MODULE_ENABLED */
+
 #ifdef HAL_EXTI_MODULE_ENABLED
   #include "stm32l5xx_hal_exti.h"
 #endif /* HAL_EXTI_MODULE_ENABLED */

@@ -30,24 +30,45 @@ jobs:
       - name: Install pinned Python build dependencies
         run: python3 -m pip install -r tools/requirements-build.txt
 
-      - name: Configure from a clean clone
-        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=Release
+      - name: Smoke-test every Python entry point
+        run: |
+          python3 -m compileall -q tools
+          for tool in tools/*.py; do
+            python3 "$tool" --help >/dev/null
+          done
 
-      - name: Compile HEX and BIN
-        run: cmake --build build/ci --parallel 4
+      - name: Preflight and compile every firmware application
+        run: >-
+          python3 tools/build_all_firmware.py
+          --build-root build/ci
+          --build-type Release
+          --jobs 4
+          --strict-toolchain
 
       - name: Record build evidence
         run: |
           git status --short
           git submodule status --recursive
           arm-none-eabi-gcc --version
-          sha256sum build/ci/STM32_deploy.hex build/ci/STM32_deploy.bin
+          cat build/ci/build_manifest.json
+          sha256sum build/ci/*/STM32_deploy.hex build/ci/*/STM32_deploy.bin
 
-      - name: Upload directly flashable default firmware
+      - name: Reject generated or host-specific source state
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          if strings build/ci/*/STM32_deploy.elf build/ci/*/STM32_deploy.bin |
+            grep -F "$GITHUB_WORKSPACE"; then
+            echo "firmware contains the GitHub runner checkout path"
+            exit 1
+          fi
+
+      - name: Upload all directly flashable firmware
         uses: actions/upload-artifact@v4
         with:
-          name: STM32_deploy-${{ github.sha }}
+          name: STM32_deploy-all-applications-${{ github.sha }}
           path: |
-            build/ci/STM32_deploy.hex
-            build/ci/STM32_deploy.bin
+            build/ci/build_manifest.json
+            build/ci/*/STM32_deploy.hex
+            build/ci/*/STM32_deploy.bin
           if-no-files-found: error

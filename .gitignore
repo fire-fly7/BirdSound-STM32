@@ -1,5 +1,5 @@
-# Build output
-build/
+# Build output (CMake directories are always generated, never source inputs)
+/build*/
 
 # IDE
 .vscode/

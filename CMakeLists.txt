@@ -36,11 +36,20 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 # Enable CMake support for ASM and C languages
 enable_language(C CXX ASM)
 
+# TFLM diagnostics use __FILE__, so absolute checkout paths would otherwise be
+# embedded in flash and shift later constants.  Stable virtual prefixes make
+# BIN/HEX output independent of both source and build directory locations.
+add_compile_options(
+    "$<$<COMPILE_LANGUAGE:C,CXX>:-ffile-prefix-map=${CMAKE_CURRENT_BINARY_DIR}=STM32_deploy-build>"
+    "$<$<COMPILE_LANGUAGE:C,CXX>:-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=STM32_deploy>"
+)
+
 # The microphone capture frontend is intentionally not part of the serial
 # application. It receives PCM16 recordings over UART, then runs the shared
 # feature frontend and model inference entirely on the board.
 set(STM32_DEPLOY_APP "serial" CACHE STRING "Firmware application")
-set_property(CACHE STM32_DEPLOY_APP PROPERTY STRINGS serial)
+set_property(CACHE STM32_DEPLOY_APP PROPERTY STRINGS
+    serial microphone_test cca02m2_test)
 if(STM32_DEPLOY_APP STREQUAL "serial")
     set(STM32_DEPLOY_APP_DEFINITIONS
         STM32_DEPLOY_SERIAL_APP=1)
@@ -49,8 +58,29 @@ if(STM32_DEPLOY_APP STREQUAL "serial")
     set(STM32_DEPLOY_APP_SOURCES
         App/Serial/Src/stm32_deploy_serial_app.c
         App/Serial/Src/serial_model_app.c)
+elseif(STM32_DEPLOY_APP STREQUAL "microphone_test")
+    set(STM32_MIC_SAMPLE_RATE_HZ "16000" CACHE STRING
+        "ICS-43434 diagnostic sample rate")
+    set_property(CACHE STM32_MIC_SAMPLE_RATE_HZ PROPERTY STRINGS 16000 48000)
+    if(NOT STM32_MIC_SAMPLE_RATE_HZ MATCHES "^(16000|48000)$")
+        message(FATAL_ERROR
+                "STM32_MIC_SAMPLE_RATE_HZ must be 16000 or 48000")
+    endif()
+    set(STM32_DEPLOY_APP_DEFINITIONS
+        STM32_DEPLOY_MICROPHONE_TEST_APP=1
+        STM32_MIC_SAMPLE_RATE_HZ=${STM32_MIC_SAMPLE_RATE_HZ})
+    set(STM32_DEPLOY_APP_SOURCES
+        App/Microphone/Test/Src/stm32_deploy_microphone_test_app.c)
+elseif(STM32_DEPLOY_APP STREQUAL "cca02m2_test")
+    set(STM32_DEPLOY_APP_DEFINITIONS
+        STM32_DEPLOY_CCA02M2_TEST_APP=1
+        HAL_DFSDM_MODULE_ENABLED)
+    set(STM32_DEPLOY_APP_SOURCES
+        App/Microphone/CCA02M2Test/Src/stm32_deploy_cca02m2_test_app.c)
 else()
-    message(FATAL_ERROR "Only STM32_DEPLOY_APP=serial is currently implemented")
+    message(FATAL_ERROR
+            "Unsupported STM32_DEPLOY_APP='${STM32_DEPLOY_APP}'. "
+            "Choose serial, microphone_test, or cca02m2_test")
 endif()
 
 # Leave STM32_MODEL_TFLITE empty to use the checked-in default bundle. Point it
@@ -64,6 +94,7 @@ set_property(CACHE STM32_MODEL_FEATURE PROPERTY STRINGS "" MFCC LOGMEL PCEN)
 set(STM32_MODEL_SOURCE_COMMIT "unknown" CACHE STRING "Model_train source commit")
 set(STM32_MODEL_ARENA_BYTES "98304" CACHE STRING "Tensor arena size")
 
+if(STM32_DEPLOY_APP STREQUAL "serial")
 set(STM32_MODEL_DATA_SOURCE
     "${CMAKE_CURRENT_SOURCE_DIR}/App/ModelRuntime/Src/model_data.c")
 set(STM32_MODEL_INCLUDE_DIR
@@ -88,8 +119,6 @@ endif()
 # the first clean-clone configure. The downloads directory is ignored by the
 # submodule, so this does not make the recorded source revision dirty.
 set(TFLM_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/Drivers/tflite-micro")
-set(TFLM_MAKEFILE
-    "${TFLM_ROOT}/tensorflow/lite/micro/tools/make/Makefile")
 set(TFLM_DOWNLOADS_DIR
     "${TFLM_ROOT}/tensorflow/lite/micro/tools/make/downloads")
 set(TFLM_REQUIRED_DEPENDENCIES
@@ -103,75 +132,87 @@ if(NOT EXISTS "${TFLM_ROOT}/tensorflow/lite/kernels/kernel_util.cc")
             "  git submodule update --init --recursive")
 endif()
 
-set(TFLM_DEPENDENCIES_MISSING FALSE)
-foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
-    if(NOT EXISTS "${TFLM_DEPENDENCY}")
-        set(TFLM_DEPENDENCIES_MISSING TRUE)
-    endif()
-endforeach()
-if(TFLM_DEPENDENCIES_MISSING)
-    message(STATUS "Fetching checksum-locked TFLite Micro dependencies")
-
-    # Do not invoke TFLM's top-level Makefile here. Parsing that Makefile also
-    # downloads unrelated example assets and imports NumPy, even though this
-    # firmware only needs these three header dependencies. Call the download
-    # helpers from the pinned submodule directly; NumPy remains an explicit,
-    # pinned dependency of this project's frontend table generator.
-    set(TFLM_MAKE_TOOLS
-        "${TFLM_ROOT}/tensorflow/lite/micro/tools/make")
-    file(MAKE_DIRECTORY "${TFLM_DOWNLOADS_DIR}")
-    if(NOT EXISTS
-       "${TFLM_DOWNLOADS_DIR}/flatbuffers/include/flatbuffers/flatbuffers.h")
-        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/flatbuffers")
-        execute_process(
-            COMMAND "${TFLM_MAKE_TOOLS}/flatbuffers_download.sh"
-                    "${TFLM_DOWNLOADS_DIR}" "${TFLM_ROOT}/"
-            WORKING_DIRECTORY "${TFLM_ROOT}"
-            RESULT_VARIABLE TFLM_FLATBUFFERS_RESULT)
-    else()
-        set(TFLM_FLATBUFFERS_RESULT 0)
-    endif()
-    if(NOT EXISTS "${TFLM_DOWNLOADS_DIR}/gemmlowp/fixedpoint/fixedpoint.h")
-        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/gemmlowp")
-        execute_process(
-            COMMAND "${TFLM_MAKE_TOOLS}/download_and_extract.sh"
-                    "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
-                    "7e8191b24853d75de2af87622ad293ba"
-                    "${TFLM_DOWNLOADS_DIR}/gemmlowp"
-            WORKING_DIRECTORY "${TFLM_ROOT}"
-            RESULT_VARIABLE TFLM_GEMMLOWP_RESULT)
-    else()
-        set(TFLM_GEMMLOWP_RESULT 0)
-    endif()
-    if(NOT EXISTS
-       "${TFLM_DOWNLOADS_DIR}/ruy/ruy/profiler/instrumentation.h")
-        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/ruy")
-        execute_process(
-            COMMAND "${TFLM_MAKE_TOOLS}/download_and_extract.sh"
-                    "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
-                    "abf7a91eb90d195f016ebe0be885bb6e"
-                    "${TFLM_DOWNLOADS_DIR}/ruy"
-            WORKING_DIRECTORY "${TFLM_ROOT}"
-            RESULT_VARIABLE TFLM_RUY_RESULT)
-    else()
-        set(TFLM_RUY_RESULT 0)
+function(stm32_fetch_tflm_archive NAME URL MD5 ARCHIVE_ROOT REQUIRED_FILE)
+    set(DESTINATION "${TFLM_DOWNLOADS_DIR}/${NAME}")
+    if(EXISTS "${DESTINATION}/${REQUIRED_FILE}")
+        return()
     endif()
 
-    math(EXPR TFLM_DOWNLOAD_RESULT
-         "${TFLM_FLATBUFFERS_RESULT} + ${TFLM_GEMMLOWP_RESULT} + ${TFLM_RUY_RESULT}")
-    foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
-        if(NOT EXISTS "${TFLM_DEPENDENCY}")
-            message(FATAL_ERROR
-                    "TFLite Micro dependency bootstrap did not create "
-                    "${TFLM_DEPENDENCY}")
-        endif()
-    endforeach()
-    if(NOT TFLM_DOWNLOAD_RESULT EQUAL 0)
+    set(STAGING "${CMAKE_CURRENT_BINARY_DIR}/tflm-bootstrap/${NAME}")
+    set(ARCHIVE "${STAGING}/${NAME}.zip")
+    set(EXTRACTED "${STAGING}/extracted")
+    file(REMOVE_RECURSE "${STAGING}" "${DESTINATION}")
+    file(MAKE_DIRECTORY "${EXTRACTED}")
+    message(STATUS "Downloading checksum-locked TFLM dependency: ${NAME}")
+    file(DOWNLOAD "${URL}" "${ARCHIVE}"
+         EXPECTED_HASH "MD5=${MD5}"
+         TLS_VERIFY ON
+         STATUS DOWNLOAD_STATUS)
+    list(GET DOWNLOAD_STATUS 0 DOWNLOAD_CODE)
+    list(GET DOWNLOAD_STATUS 1 DOWNLOAD_DETAIL)
+    if(NOT DOWNLOAD_CODE EQUAL 0)
+        file(REMOVE_RECURSE "${STAGING}")
+        message(FATAL_ERROR "Failed to download ${NAME}: ${DOWNLOAD_DETAIL}")
+    endif()
+    file(ARCHIVE_EXTRACT INPUT "${ARCHIVE}" DESTINATION "${EXTRACTED}")
+    if(NOT EXISTS "${EXTRACTED}/${ARCHIVE_ROOT}/${REQUIRED_FILE}")
+        file(REMOVE_RECURSE "${STAGING}")
         message(FATAL_ERROR
-                "TFLite Micro dependency bootstrap failed with "
-                "exit code ${TFLM_DOWNLOAD_RESULT}")
+                "${NAME} archive did not contain ${ARCHIVE_ROOT}/${REQUIRED_FILE}")
+    endif()
+    file(MAKE_DIRECTORY "${TFLM_DOWNLOADS_DIR}")
+    file(RENAME "${EXTRACTED}/${ARCHIVE_ROOT}" "${DESTINATION}")
+    file(REMOVE_RECURSE "${STAGING}")
+endfunction()
+
+stm32_fetch_tflm_archive(
+    flatbuffers
+    "https://github.com/google/flatbuffers/archive/v23.5.26.zip"
+    "e87e8acd8e2d53653387ad78720316e2"
+    "flatbuffers-23.5.26"
+    "include/flatbuffers/flatbuffers.h")
+stm32_fetch_tflm_archive(
+    gemmlowp
+    "https://github.com/google/gemmlowp/archive/719139ce755a0f31cbf1c37f7f98adcc7fc9f425.zip"
+    "7e8191b24853d75de2af87622ad293ba"
+    "gemmlowp-719139ce755a0f31cbf1c37f7f98adcc7fc9f425"
+    "fixedpoint/fixedpoint.h")
+stm32_fetch_tflm_archive(
+    ruy
+    "https://github.com/google/ruy/archive/d37128311b445e758136b8602d1bbd2a755e115d.zip"
+    "abf7a91eb90d195f016ebe0be885bb6e"
+    "ruy-d37128311b445e758136b8602d1bbd2a755e115d"
+    "ruy/profiler/instrumentation.h")
+
+set(TFLM_FLATBUFFERS_PATCH
+    "${TFLM_ROOT}/tensorflow/lite/micro/tools/make/flatbuffers.patch")
+set(TFLM_FLATBUFFERS_BASE
+    "${TFLM_DOWNLOADS_DIR}/flatbuffers/include/flatbuffers/base.h")
+file(STRINGS "${TFLM_FLATBUFFERS_BASE}" TFLM_FLATBUFFERS_PATCH_MARKER
+     REGEX "^#define FLATBUFFERS_LOCALE_INDEPENDENT 0$")
+if(NOT TFLM_FLATBUFFERS_PATCH_MARKER)
+    find_package(Git 2.20 REQUIRED)
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" apply --whitespace=nowarn
+                "${TFLM_FLATBUFFERS_PATCH}"
+        WORKING_DIRECTORY "${TFLM_DOWNLOADS_DIR}/flatbuffers"
+        RESULT_VARIABLE TFLM_FLATBUFFERS_PATCH_RESULT
+        ERROR_VARIABLE TFLM_FLATBUFFERS_PATCH_ERROR)
+    if(NOT TFLM_FLATBUFFERS_PATCH_RESULT EQUAL 0)
+        file(REMOVE_RECURSE "${TFLM_DOWNLOADS_DIR}/flatbuffers")
+        message(FATAL_ERROR
+                "Failed to apply the pinned TFLM FlatBuffers patch: "
+                "${TFLM_FLATBUFFERS_PATCH_ERROR}")
     endif()
 endif()
+
+foreach(TFLM_DEPENDENCY IN LISTS TFLM_REQUIRED_DEPENDENCIES)
+    if(NOT EXISTS "${TFLM_DEPENDENCY}")
+        message(FATAL_ERROR
+                "TFLite Micro dependency bootstrap did not create "
+                "${TFLM_DEPENDENCY}")
+    endif()
+endforeach()
 
 if(STM32_MODEL_TFLITE)
     get_filename_component(STM32_MODEL_TFLITE_ABSOLUTE
@@ -255,6 +296,7 @@ if(NOT STM32_FRONTEND_GENERATOR_RESULT EQUAL 0)
             "${STM32_FRONTEND_GENERATOR_ERROR}")
 endif()
 message(STATUS "${STM32_FRONTEND_GENERATOR_OUTPUT}")
+endif()
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
@@ -262,8 +304,13 @@ add_executable(${CMAKE_PROJECT_NAME})
 
 # Add STM32CubeMX generated sources and the TFLite Micro runtime.
 add_subdirectory(cmake/stm32cubemx)
-add_library(tflm STATIC)
-add_library(cmsis_dsp_frontend STATIC)
+
+if(STM32_DEPLOY_APP STREQUAL "cca02m2_test")
+    target_sources(STM32_Drivers PRIVATE
+        Drivers/STM32L5xx_HAL_Driver/Src/stm32l5xx_hal_dfsdm.c)
+    target_compile_definitions(STM32_Drivers PRIVATE
+        HAL_DFSDM_MODULE_ENABLED)
+endif()
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
@@ -272,7 +319,11 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 
-# Add TensorFlow Lite Micro sources
+# Add TensorFlow Lite Micro sources only to the serial/model application.
+if(STM32_DEPLOY_APP STREQUAL "serial")
+add_library(tflm STATIC)
+add_library(cmsis_dsp_frontend STATIC)
+
 target_sources(tflm PRIVATE
     # ===== Kernel =====
     Drivers/tflite-micro/tensorflow/lite/kernels/kernel_util.cc
@@ -365,6 +416,7 @@ target_compile_definitions(cmsis_dsp_frontend PUBLIC
     ARM_TABLE_BITREVIDX_FLT_1024
     ARM_TABLE_TWIDDLECOEF_RFFT_F32_2048
 )
+endif()
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
@@ -382,14 +434,18 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    ${STM32_MODEL_DATA_SOURCE}
-    ${STM32_FRONTEND_GENERATED_DIR}/mfcc_frontend_tables.c
-    App/ModelRuntime/Src/model_debug_log.c
-    App/ModelRuntime/Src/model_inference.cpp
-    App/ModelRuntime/Src/model_test.cpp
-    App/AudioFrontend/Src/audio_frontend.c
     ${STM32_DEPLOY_APP_SOURCES}
 )
+
+if(STM32_DEPLOY_APP STREQUAL "serial")
+    target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+        ${STM32_MODEL_DATA_SOURCE}
+        ${STM32_FRONTEND_GENERATED_DIR}/mfcc_frontend_tables.c
+        App/ModelRuntime/Src/model_debug_log.c
+        App/ModelRuntime/Src/model_inference.cpp
+        App/ModelRuntime/Src/model_test.cpp
+        App/AudioFrontend/Src/audio_frontend.c)
+endif()
 
 
 
@@ -397,10 +453,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     # Add user defined libraries
-    tflm
-    cmsis_dsp_frontend
     m
 )
+
+if(STM32_DEPLOY_APP STREQUAL "serial")
+    target_link_libraries(${CMAKE_PROJECT_NAME}
+        tflm
+        cmsis_dsp_frontend)
+endif()
 
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O ihex
