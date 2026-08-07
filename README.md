@@ -8,6 +8,14 @@
 MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只读取 WAV、
 校验格式和分块传输，不生成特征。原有 `.npy` 特征张量命令保留为数值回归接口。
 
+完整 Linux 迁移、工具版本、USB 权限、三个固件目标的一键预检/构建和 GitHub
+干净克隆验收见 [`docs/LINUX_PORTABILITY.md`](docs/LINUX_PORTABILITY.md)。推荐先运行：
+
+```sh
+python3 tools/check_linux_toolchain.py --profile build --strict-toolchain
+python3 tools/build_all_firmware.py --strict-toolchain --jobs 4
+```
+
 ## 已生成的可烧录实验包
 
 完整的 57 模型固件包从
@@ -45,7 +53,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r tools/requirements-build.txt
 cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
-cmake --build build/release -j
+cmake --build build/release --parallel 4
 ```
 
 从干净的 LED_TEST 和 Model_train 工作树重新生成 57 模型固件包。输出应放在
@@ -140,7 +148,7 @@ MAX_POOL_2D, MEAN, MUL, LOGISTIC, SOFTMAX
 
 ```sh
 cmake --preset Debug
-cmake --build --preset Debug -j
+cmake --build --preset Debug --parallel 4
 ```
 
 选择 Model_train 的任意导出：
@@ -154,7 +162,7 @@ cmake -S . -B build/zero_shot_mfcc \
   -DSTM32_MODEL_TFLITE="$MODEL_DIR/DS_CNN_Model.int8.tflite" \
   -DSTM32_MODEL_LABEL_MAP="$MODEL_TRAIN/src/dataset_processing/label_map_8class.json" \
   -DSTM32_MODEL_SOURCE_COMMIT=42ead2e614e3f40afc7da29e660fc94609d10817
-cmake --build build/zero_shot_mfcc -j
+cmake --build build/zero_shot_mfcc --parallel 4
 ```
 
 生成物位于构建目录：
@@ -188,8 +196,9 @@ python3 -m pip install -r tools/requirements-serial.txt
 ```
 
 57 个模型的 metadata 均记录转换运行时为 TensorFlow 2.19.0，因此桌面对拍精确
-锁定 `tensorflow-cpu==2.19.0` 和 `BUILTIN_REF` resolver，与板端 TFLite Micro
-逐 LSB 比较。不能使用浮动版本的 LiteRT，也不能把会自动启用 XNNPACK 的 `AUTO`
+锁定 TensorFlow 2.19.0 和 `BUILTIN_REF` resolver，与板端 TFLite Micro 逐 LSB
+比较。依赖文件在 x86_64 安装 `tensorflow-cpu`，在 AArch64 安装同版本
+`tensorflow`。不能使用浮动版本的 LiteRT，也不能把会自动启用 XNNPACK 的 `AUTO`
 输出当成基准；量化参考内核会随运行时版本变化。
 
 查询板端实际加载的模型、形状、量化参数、哈希、arena 用量和标签：
