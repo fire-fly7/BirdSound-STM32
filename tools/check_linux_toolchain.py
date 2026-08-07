@@ -170,11 +170,16 @@ def main() -> int:
     if compiler:
         code, output = command_output([compiler, "--version"], source)
         first_line = output.splitlines()[0] if output else "no version output"
-        compiler_ok = code == 0
+        version_code, version_output = command_output(
+            [compiler, "-dumpfullversion"], source
+        )
+        compiler_version = version_tuple(version_output)
+        compiler_ok = code == 0 and version_code == 0 and bool(compiler_version)
+        first_line += f" [GCC {version_output or 'unknown'}]"
         if args.strict_toolchain:
-            compiler_ok = compiler_ok and version_tuple(first_line)[:3] == (14, 2, 1)
+            compiler_ok = compiler_ok and compiler_version[:3] == (14, 2, 1)
             first_line += " (required GCC 14.2.1; releases use Arm 14.2.Rel1)"
-        elif version_tuple(first_line)[:3] != (14, 2, 1):
+        elif compiler_version[:3] != (14, 2, 1):
             add_warning(
                 checks,
                 "reproducible compiler",
