@@ -9,7 +9,7 @@ MFCC/LogMel/PCEN → 板端量化与 INT8 推理 → 录音级结果”。PC 只
 校验格式和分块传输，不生成特征。原有 `.npy` 特征张量命令保留为数值回归接口。
 
 完整 Linux 迁移、工具版本、USB 权限、三个固件目标的一键预检/构建和 GitHub
-干净克隆验收见 [`docs/LINUX_PORTABILITY.md`](docs/LINUX_PORTABILITY.md)。推荐先运行：
+干净克隆验收见 [`docs/LINUX_PORTABILITY.md`](../docs/LINUX_PORTABILITY.md)。推荐先运行：
 
 ```sh
 python3 tools/check_linux_toolchain.py --profile build --strict-toolchain
@@ -25,9 +25,9 @@ python3 tools/build_all_firmware.py --strict-toolchain --jobs 4
 把无原始记录的人工数值当作实板结果。
 
 2026-07-29 至 2026-07-30 的
-[57 模型 × 192 条录音完整实板结果](board_results/board_replay_all57_all192_20260729/RESULTS.md)
+[57 模型 × 192 条录音完整实板结果](../board_results/board_replay_all57_all192_20260729/RESULTS.md)
 包含 57/57 烧录校验、10944 条原始 WAV 预测和 570 次零 LSB 输出对拍。
-[早期验证证据](evidence/board_2026-07-29/README.md)另保留三种前端误差报告和
+[早期验证证据](../evidence/board_2026-07-29/README.md)另保留三种前端误差报告和
 8 条来源标签链路冒烟。两批来源标签数据都明确标记
 `scientific_metrics_valid=false`，不冒充论文最终指标。
 
@@ -207,7 +207,7 @@ python3 tools/serial_model_client.py --port /dev/ttyACM0 --timeout 20 \
 
 新的全模型测试集统一放在 `board_testset/`。硬性 WAV、标签、清单、数据独立性
 和样本排列要求见
-[`docs/BOARD_BENCHMARK_TESTSET.md`](docs/BOARD_BENCHMARK_TESTSET.md)。
+[`docs/BOARD_BENCHMARK_TESTSET.md`](../docs/BOARD_BENCHMARK_TESTSET.md)。
 准备完成后先严格校验全部 WAV 和哈希：
 
 ```sh
@@ -276,7 +276,7 @@ python3 tools/run_board_benchmark.py validate-testset \
 ```
 
 严格论文测试仍必须使用
-[`docs/BOARD_BENCHMARK_TESTSET.md`](docs/BOARD_BENCHMARK_TESTSET.md) 规定的人工
+[`docs/BOARD_BENCHMARK_TESTSET.md`](../docs/BOARD_BENCHMARK_TESTSET.md) 规定的人工
 复核、无混合目标种、通过数据泄漏审计的 `board_testset/`。
 
 对齐训练数组与板端返回的最后一个一秒窗后，可固化 MFCC/LogMel/PCEN 浮点误差
