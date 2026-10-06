@@ -12,16 +12,11 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_LABELS = (
-    "Agelaius_phoeniceus",
-    "Cardinalis_cardinalis",
-    "Certhia_americana",
-    "Corvus_brachyrhynchos",
-    "Setophaga_aestiva",
-    "Setophaga_ruticilla",
-    "Spinus_tristis",
-    "Turdus_migratorius",
-)
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared.deployment_contract import CONTRACT, CONTRACT_SHA256, LEGACY_CONTRACT_SHA256, render_c_header
+
+DEFAULT_LABELS = tuple(CONTRACT["labels"])
 
 SUPPORTED_OPERATORS = {
     "ADD",
@@ -36,9 +31,9 @@ SUPPORTED_OPERATORS = {
 }
 
 FEATURES = {
-    "MFCC": (1, 13),
-    "LOGMEL": (2, 40),
-    "PCEN": (3, 40),
+    "MFCC": (1, CONTRACT["mfcc"]["coefficients"]),
+    "LOGMEL": (2, CONTRACT["mel"]["spectral_bands"]),
+    "PCEN": (3, CONTRACT["mel"]["spectral_bands"]),
 }
 
 ACTIVATIONS = {
@@ -59,8 +54,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--feature", choices=tuple(FEATURES))
     parser.add_argument("--model-name")
     parser.add_argument("--source-commit", default="unknown")
-    parser.add_argument("--arena-bytes", type=int, default=98_304)
-    parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--arena-bytes", type=int, default=CONTRACT["model"]["arena_bytes"])
+    parser.add_argument("--threshold", type=float, default=CONTRACT["model"]["output_threshold"])
     parser.add_argument("--output-dir", required=True, type=Path)
     return parser.parse_args()
 
@@ -79,7 +74,7 @@ def derive_metadata_path(tflite_path: Path) -> Path:
     name = tflite_path.name
     if name.endswith(".int8.tflite"):
         return tflite_path.with_name(name.removesuffix(".int8.tflite") + ".int8_metadata.json")
-    return tflite_path.with_suffix(".json")
+    return tflite_path.with_suffix(".int8_metadata.json")
 
 
 def require(mapping: dict[str, Any], key: str, expected: type) -> Any:
@@ -131,6 +126,8 @@ def read_labels(path: Path | None) -> tuple[str, ...]:
     labels = tuple(indexed[index] for index in range(len(DEFAULT_LABELS)))
     if any(len(label.encode("utf-8")) >= 32 for label in labels):
         raise BundleError("firmware protocol permits at most 31 UTF-8 bytes per label")
+    if labels != DEFAULT_LABELS:
+        raise BundleError("label ordering does not match the shared deployment contract")
     return labels
 
 
@@ -142,7 +139,7 @@ def infer_feature(
 ) -> str:
     if explicit is not None:
         feature = explicit
-    elif input_bins == 13:
+    elif input_bins == CONTRACT["mfcc"]["coefficients"]:
         feature = "MFCC"
     else:
         clues = " ".join(
@@ -224,6 +221,7 @@ def render_manifest(bundle: dict[str, Any]) -> str:
 #define MODEL_NAME {c_string(bundle["protocol_model_name"])}
 #define MODEL_FULL_NAME {c_string(bundle["model_name"])}
 #define MODEL_SOURCE_COMMIT {c_string(bundle["source_commit"])}
+#define MODEL_FRONTEND_CONTRACT_SHA256 {c_string(bundle["frontend_contract_sha256"])}
 #define MODEL_SHA256 {c_string(bundle["sha256"])}
 #define MODEL_DATA_BYTES {bundle["model_bytes"]}U
 
@@ -264,6 +262,10 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     except OSError as exc:
         raise BundleError(f"cannot read model {tflite_path}: {exc}") from exc
     metadata = load_json(metadata_path)
+    if 'frontend_contract_sha256' not in metadata and CONTRACT_SHA256 != LEGACY_CONTRACT_SHA256:
+        raise BundleError('legacy metadata cannot be used with changed frontend parameters; re-export the model')
+    if metadata.get('frontend_contract_sha256', CONTRACT_SHA256) != CONTRACT_SHA256:
+        raise BundleError('model metadata frontend contract hash mismatch')
 
     if metadata.get("strict_int8") is not True:
         raise BundleError("only strict_int8 Model_train exports are supported")
@@ -273,6 +275,8 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
         raise BundleError("metadata must contain input and output objects")
     if input_metadata.get("dtype") != "int8" or output_metadata.get("dtype") != "int8":
         raise BundleError("model input and output tensors must both be int8")
+    if metadata.get('tflite_sha256', hashlib.sha256(model).hexdigest()) != hashlib.sha256(model).hexdigest():
+        raise BundleError('model bytes do not match metadata SHA-256')
     metadata_bytes = metadata.get("tflite_bytes")
     if metadata_bytes is not None and metadata_bytes != len(model):
         raise BundleError(
@@ -285,9 +289,9 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
     output_shape = parse_shape(
         output_metadata.get("shape_signature"), "output.shape_signature", dimensions=2
     )
-    if input_shape[0] != -1 or input_shape[1] != 32 or input_shape[3] != 1:
+    if input_shape[0] != -1 or input_shape[1] != CONTRACT["stft"]["frames"] or input_shape[3] != 1:
         raise BundleError(f"unsupported input signature {input_shape}; expected [-1, 32, bins, 1]")
-    if input_shape[2] not in (13, 40):
+    if input_shape[2] not in tuple(x[1] for x in FEATURES.values()):
         raise BundleError(f"unsupported feature-bin count {input_shape[2]}")
     if output_shape != [-1, len(DEFAULT_LABELS)]:
         raise BundleError(
@@ -327,6 +331,8 @@ def build_bundle(args: argparse.Namespace) -> dict[str, Any]:
 
     return {
         "schema_version": 1,
+        "frontend_contract_sha256": CONTRACT_SHA256,
+        "contract_provenance": "verified_metadata" if "frontend_contract_sha256" in metadata else "legacy_metadata_assumed_compatible",
         "model_name": full_name,
         "protocol_model_name": protocol_model_name(full_name, sha256),
         "source_commit": args.source_commit,

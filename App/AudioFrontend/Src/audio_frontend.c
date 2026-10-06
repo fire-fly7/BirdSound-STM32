@@ -9,14 +9,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define AUDIO_FRONTEND_FFT_SIZE       2048U
-#define AUDIO_FRONTEND_HOP_LENGTH     512U
+#define AUDIO_FRONTEND_FFT_SIZE       SHARED_FFT_SIZE
+#define AUDIO_FRONTEND_HOP_LENGTH     SHARED_HOP_LENGTH
 #define AUDIO_FRONTEND_CENTER_PADDING (AUDIO_FRONTEND_FFT_SIZE / 2U)
 #define AUDIO_FRONTEND_SPECTRUM_BINS  (AUDIO_FRONTEND_FFT_SIZE / 2U + 1U)
-#define AUDIO_FRONTEND_MEL_BANDS      128U
-#define AUDIO_FRONTEND_POWER_FLOOR    1.0e-10f
-#define AUDIO_FRONTEND_TOP_DB         80.0f
-#define AUDIO_FRONTEND_SPECTRAL_BANDS 40U
+#define AUDIO_FRONTEND_MEL_BANDS      SHARED_MFCC_BANDS
+#define AUDIO_FRONTEND_POWER_FLOOR    ((float)SHARED_DB_AMIN)
+#define AUDIO_FRONTEND_TOP_DB         ((float)SHARED_TOP_DB)
+#define AUDIO_FRONTEND_SPECTRAL_BANDS SHARED_SPECTRAL_BANDS
 
 /*
  * Workspaces are static so the frontend never consumes the application stack.
@@ -133,7 +133,7 @@ audio_frontend_status_t AudioFrontend_Compute(
       if (audio_index >= 0 &&
           audio_index < (int32_t)AUDIO_FRONTEND_WINDOW_SAMPLES)
       {
-        sample = (float)pcm_samples[audio_index] / 32768.0f;
+        sample = (float)pcm_samples[audio_index] / (float)SHARED_PCM_DIVISOR;
       }
       fft_input[index] = sample * mfcc_hann_window[index];
     }
@@ -263,18 +263,18 @@ audio_frontend_status_t AudioFrontend_Compute(
   }
   else
   {
-    const double scale = 2147483648.0;
-    const double gain = 0.98;
-    const double bias = 2.0;
-    const double power = 0.5;
-    const double epsilon = 1.0e-6;
+    const double scale = SHARED_PCEN_INPUT_SCALE;
+    const double gain = SHARED_PCEN_GAIN;
+    const double bias = SHARED_PCEN_BIAS;
+    const double power = SHARED_PCEN_POWER;
+    const double epsilon = SHARED_PCEN_EPS;
     const double time_frames =
-        0.4 * (double)AUDIO_FRONTEND_SAMPLE_RATE /
+        SHARED_PCEN_TIME_CONSTANT * (double)AUDIO_FRONTEND_SAMPLE_RATE /
         (double)AUDIO_FRONTEND_HOP_LENGTH;
     const double smoothing =
         (sqrt(1.0 + 4.0 * time_frames * time_frames) - 1.0) /
         (2.0 * time_frames * time_frames);
-    const double compressed_bias = sqrt(bias);
+    const double compressed_bias = pow(bias, power);
 
     for (uint32_t band = 0U; band < AUDIO_FRONTEND_SPECTRAL_BANDS; ++band)
     {
@@ -282,7 +282,7 @@ audio_frontend_status_t AudioFrontend_Compute(
        * scipy.signal.lfilter_zi([b], [1, b - 1]) is 1-b, which
        * corresponds to a previous smoothed output of 1 for this recurrence.
        */
-      double smoothed = 1.0;
+      double smoothed = SHARED_PCEN_INITIAL_SMOOTHED;
       for (uint32_t frame = 0U; frame < AUDIO_FRONTEND_FRAME_COUNT; ++frame)
       {
         double energy = (double)spectral_frames[frame][band] * scale;

@@ -55,6 +55,9 @@ REFERENCE_RUNTIME = "tensorflow-cpu"
 REFERENCE_RUNTIME_VERSION = "2.19.0"
 REFERENCE_RESOLVER = "BUILTIN_REF"
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared.deployment_contract import CONTRACT, CONTRACT_SHA256, quantize_int8
+
 
 class ProtocolError(RuntimeError):
     pass
@@ -462,11 +465,7 @@ def load_samples(np: Any, path: Path, info: ModelInfo) -> Any:
 
 
 def quantize_sample(np: Any, sample: Any, info: ModelInfo) -> Any:
-    scaled = np.rint(
-        sample.astype(np.float32, copy=False) / np.float32(info.input_scale)
-    ).astype(np.int32)
-    scaled += info.input_zero_point
-    return np.clip(scaled, -128, 127).astype(np.int8)
+    return quantize_int8(sample, info.input_scale, info.input_zero_point)
 
 
 def make_smoke_samples(np: Any, info: ModelInfo) -> Any:

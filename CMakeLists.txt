@@ -92,7 +92,6 @@ set(STM32_MODEL_LABEL_MAP "" CACHE FILEPATH "Optional Model_train label map JSON
 set(STM32_MODEL_FEATURE "" CACHE STRING "Optional frontend override: MFCC, LOGMEL, or PCEN")
 set_property(CACHE STM32_MODEL_FEATURE PROPERTY STRINGS "" MFCC LOGMEL PCEN)
 set(STM32_MODEL_SOURCE_COMMIT "unknown" CACHE STRING "Model_train source commit")
-set(STM32_MODEL_ARENA_BYTES "98304" CACHE STRING "Tensor arena size")
 
 if(STM32_DEPLOY_APP STREQUAL "serial")
 set(STM32_MODEL_DATA_SOURCE
@@ -113,6 +112,18 @@ if(NOT STM32_PYTHON_BUILD_DEPS_RESULT EQUAL 0)
             "  python -m pip install -r "
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/requirements-build.txt")
 endif()
+
+# JSON is canonical in the training project and mirrored by generate_deployment.py.
+set(STM32_SHARED_CONTRACT "${CMAKE_CURRENT_SOURCE_DIR}/shared/deployment_contract.json")
+set(STM32_SHARED_RUNTIME "${CMAKE_CURRENT_SOURCE_DIR}/shared/deployment_contract.py")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+             "${STM32_SHARED_CONTRACT}" "${STM32_SHARED_RUNTIME}")
+if(NOT EXISTS "${STM32_SHARED_CONTRACT}" OR NOT EXISTS "${STM32_SHARED_RUNTIME}")
+    message(FATAL_ERROR "Missing shared contract; run the training tools/generate_deployment.py")
+endif()
+file(READ "${STM32_SHARED_CONTRACT}" STM32_SHARED_CONTRACT_JSON)
+string(JSON STM32_SHARED_ARENA_DEFAULT GET "${STM32_SHARED_CONTRACT_JSON}" model arena_bytes)
+set(STM32_MODEL_ARENA_BYTES "${STM32_SHARED_ARENA_DEFAULT}" CACHE STRING "Tensor arena size (explicit override)")
 
 # TFLite Micro keeps FlatBuffers, gemmlowp, and ruy outside its source tree.
 # Fetch the versions locked and checksum-verified by the pinned TFLM commit on

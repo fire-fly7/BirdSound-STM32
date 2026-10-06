@@ -11,6 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from shared.deployment_contract import CONTRACT, CONTRACT_SHA256, quantize_int8
+
 
 class ComparisonError(RuntimeError):
     pass
@@ -89,9 +92,7 @@ def normalize_feature(np: Any, value: Any, expected: tuple[int, ...], name: str)
 
 
 def quantize(np: Any, value: Any, scale: float, zero_point: int) -> Any:
-    scaled = np.rint(value.astype(np.float32, copy=False) / np.float32(scale))
-    scaled = scaled.astype(np.int32) + zero_point
-    return np.clip(scaled, -128, 127).astype(np.int8)
+    return quantize_int8(value, scale, zero_point)
 
 
 def main() -> int:

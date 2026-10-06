@@ -3,6 +3,7 @@ extern "C" {
 }
 
 #include "model_data.h"
+#include "shared_frontend_contract.h"
 
 #include "tensorflow/lite/core/c/common.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
@@ -103,14 +104,7 @@ bool QuantizationMatches(const TfLiteTensor *tensor,
 
 int8_t QuantizeInt8(float value, const TfLiteQuantizationParams &params)
 {
-    int32_t quantized = static_cast<int32_t>(lrintf(value / params.scale)) +
-                        params.zero_point;
-    if (quantized > 127) {
-        quantized = 127;
-    } else if (quantized < -128) {
-        quantized = -128;
-    }
-    return static_cast<int8_t>(quantized);
+    return SharedQuantizeInt8(value, params.scale, params.zero_point);
 }
 
 uint8_t QuantizeUInt8(float value, const TfLiteQuantizationParams &params)
@@ -221,6 +215,12 @@ extern "C" {
 
 model_status_t model_init(void)
 {
+#ifdef MODEL_FRONTEND_CONTRACT_SHA256
+    if (strcmp(MODEL_FRONTEND_CONTRACT_SHA256, SHARED_CONTRACT_SHA256) != 0) {
+        init_status = MODEL_STATUS_METADATA_MISMATCH;
+        return init_status;
+    }
+#endif
     if (model_data_len != MODEL_DATA_BYTES) {
         init_status = MODEL_STATUS_METADATA_MISMATCH;
         return init_status;
