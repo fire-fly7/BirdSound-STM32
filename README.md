@@ -1,6 +1,6 @@
-# LED_TEST · STM32 鸟声分类部署
+# BirdSound-STM32 · STM32 鸟声分类部署
 
-面向 NUCLEO-L552ZE-Q / STM32L552ZE-Q 的 INT8 鸟声分类固件，使用 CMSIS-DSP 和 TensorFlow Lite Micro。配套训练项目：[Model_train](https://github.com/fire-fly7/Model_train)。
+面向 NUCLEO-L552ZE-Q / STM32L552ZE-Q 的 INT8 鸟声分类固件，使用 CMSIS-DSP 和 TensorFlow Lite Micro。配套训练项目：[BirdSound-TinyML](https://github.com/fire-fly7/BirdSound-TinyML)。
 
 当前入口为 `main`。主链路为 **PCM16 录音 → UART → 板端切窗 → MFCC/LogMel/PCEN → INT8 推理 → 录音级结果**。训练端负责模型和共享配置，固件端负责前端运算及推理。
 
@@ -20,8 +20,8 @@
 ## 构建
 
 ```sh
-git clone --recurse-submodules https://github.com/fire-fly7/LED_TEST.git
-cd LED_TEST
+git clone --recurse-submodules https://github.com/fire-fly7/BirdSound-STM32.git
+cd BirdSound-STM32
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -r tools/requirements-build.txt
@@ -44,7 +44,7 @@ cmake -S . -B build/shared-logmel \
 cmake --build build/shared-logmel --parallel 4
 ```
 
-共享配置来自 Model_train 的 `shared/deployment_contract.json`。修改配置后需同步两端；旧模型缺少配置哈希时，仅允许已冻结的基线配置兼容模式，不应据此宣称重新训练或重新验证。
+共享配置来自 BirdSound-TinyML 的 `shared/deployment_contract.json`。修改配置后需同步两端；旧模型缺少配置哈希时，仅允许已冻结的基线配置兼容模式，不应据此宣称重新训练或重新验证。
 
 ## 接口
 

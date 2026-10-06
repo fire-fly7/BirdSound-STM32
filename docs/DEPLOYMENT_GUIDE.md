@@ -1,7 +1,7 @@
 # STM32_deploy
 
 面向 `NUCLEO-L552ZE-Q / STM32L552ZE-Q` 的鸟声分类模型部署与板端对拍工程。
-训练端为 [fire-fly7/Model_train](https://github.com/fire-fly7/Model_train)，当前核对基线是
+训练端为 [fire-fly7/Model_train](https://github.com/fire-fly7/BirdSound-TinyML)，当前核对基线是
 提交 `325f54b5092d1dde4bab1febd02b73d3713e7c2b`。
 
 当前无麦克风实验的主链路为“原始 PCM16 录音 → 串口 → 板端切窗 → 板端
@@ -35,7 +35,7 @@ python3 tools/build_all_firmware.py --strict-toolchain --jobs 4
 提交锁定且校验过的 FlatBuffers、gemmlowp 和 ruy 版本：
 
 ```sh
-git clone --recurse-submodules https://github.com/fire-fly7/LED_TEST.git
+git clone --recurse-submodules https://github.com/fire-fly7/BirdSound-STM32.git
 cd LED_TEST
 python3 -m venv .venv
 . .venv/bin/activate

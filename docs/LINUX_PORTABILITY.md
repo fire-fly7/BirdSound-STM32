@@ -47,7 +47,7 @@ CMake 和仓库预检脚本都会读取 `ARM_GNU_TOOLCHAIN_ROOT`。如果未设�
 ## 2. 干净克隆与 Python 环境
 
 ```sh
-git clone --recurse-submodules https://github.com/fire-fly7/LED_TEST.git
+git clone --recurse-submodules https://github.com/fire-fly7/BirdSound-STM32.git
 cd LED_TEST
 python3 -m venv .venv
 . .venv/bin/activate
